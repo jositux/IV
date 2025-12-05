@@ -205,11 +205,11 @@ export function VideoLandingPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatedSection delay={100}>
               <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition group">
-                <div className="relative h-64 bg-gradient-to-br from-purple-300 to-purple-500">
+                <div className="relative h-64 bg-gradient-to-br from-purple-300 to-purple-500 overflow-hidden">
                   <img
                     src="/happy-professional-woman-on-laptop-with-purple-lig.jpg"
                     alt="Video example"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition"></div>
                 </div>
@@ -218,11 +218,11 @@ export function VideoLandingPage() {
 
             <AnimatedSection delay={200}>
               <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition group">
-                <div className="relative h-48 bg-gradient-to-br from-orange-300 to-orange-500">
+                <div className="relative h-48 bg-gradient-to-br from-orange-300 to-orange-500 overflow-hidden">
                   <img
                     src="/person-in-yellow-jacket-with-coffee-outdoors.jpg"
                     alt="Video example"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                 </div>
                 <CardContent className="pt-6">
@@ -236,11 +236,11 @@ export function VideoLandingPage() {
 
             <AnimatedSection delay={300}>
               <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition group">
-                <div className="relative h-48 bg-gradient-to-br from-blue-300 to-blue-500">
+                <div className="relative h-48 bg-gradient-to-br from-blue-300 to-blue-500 overflow-hidden">
                   <img
                     src="/professional-presenting-with-screen-behind.jpg"
                     alt="Video example"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                 </div>
                 <CardContent className="pt-6">
@@ -254,11 +254,11 @@ export function VideoLandingPage() {
 
             <AnimatedSection delay={400}>
               <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition group">
-                <div className="relative h-48 bg-gradient-to-br from-green-300 to-green-500">
+                <div className="relative h-48 bg-gradient-to-br from-green-300 to-green-500 overflow-hidden">
                   <img
                     src="/outdoor-business-discussion.jpg"
                     alt="Video example"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                 </div>
                 <CardContent className="pt-6">
