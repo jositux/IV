@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { VideoPopup } from "@/components/video-popup"
 import { Play, Percent, BookOpen, Heart, Monitor, FileText, ShoppingBag } from "lucide-react"
 import { useScrollAnimation } from "@/hooks/use-scroll-animation"
-import { UserMenu } from "@/components/auth/user-menu"
 
 function AnimatedSection({
   children,
@@ -50,7 +49,9 @@ export function VideoLandingPage() {
             <a href="#cases" className="hover:text-purple-400 transition">
               Learn Cases
             </a>
-            <UserMenu />
+            <a href="#" className="hover:text-purple-400 transition">
+              Login / Sign Up
+            </a>
           </nav>
         </div>
       </header>
@@ -401,95 +402,16 @@ export function VideoLandingPage() {
             <p className="text-purple-200">All plans include access to our AGI content platform and AI-features.</p>
           </AnimatedSection>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {/* Creator Plan */}
-            <AnimatedSection delay={100}>
-              <Card className="bg-white/10 backdrop-blur border-white/20 text-white">
-                <CardContent className="pt-6">
-                  <h3 className="text-xl font-bold mb-2">Creator</h3>
-                  <p className="text-sm text-purple-200 mb-6">
-                    Perfect for individuals who need occasional video content
+          <div className="text-center">
+            <AnimatedSection>
+              <Card className="bg-white/10 backdrop-blur border-white/20 text-white max-w-2xl mx-auto">
+                <CardContent className="pt-12 pb-12">
+                  <h3 className="text-3xl font-bold mb-4">Get Started Today</h3>
+                  <p className="text-lg text-purple-200 mb-8">
+                    Transform your content into professional videos with our AI-powered platform
                   </p>
-                  <div className="mb-6">
-                    <div className="text-sm text-purple-200 line-through mb-1">$99</div>
-                    <div className="text-4xl font-bold mb-1">$50</div>
-                    <div className="text-sm text-purple-200">Billed annually at $600/year</div>
-                  </div>
-                  <div className="text-center py-4 bg-white/5 rounded mb-6">
-                    <div className="text-3xl font-bold">60</div>
-                    <div className="text-sm text-purple-200">CREDITS PER MONTH</div>
-                  </div>
-                  <ul className="space-y-3 text-sm mb-6">
-                    <li>• AI-generated scripts</li>
-                    <li>• 140+ realistic avatars</li>
-                    <li>• Full access to video templates</li>
-                    <li>• HD 1080p video downloads</li>
-                    <li>• Basic analytics & branding</li>
-                  </ul>
-                  <Button variant="outline" className="w-full border-white text-white hover:bg-white/10 bg-transparent">
-                    Start Free
-                  </Button>
-                </CardContent>
-              </Card>
-            </AnimatedSection>
-
-            {/* Starter Plan - Most Popular */}
-            <AnimatedSection delay={200}>
-              <Card className="bg-purple-600 border-purple-400 text-white relative transform scale-105 shadow-2xl">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                  Most Popular
-                </div>
-                <CardContent className="pt-6">
-                  <h3 className="text-xl font-bold mb-2">Starter</h3>
-                  <p className="text-sm text-purple-100 mb-6">
-                    For teams and professionals who need regular video content
-                  </p>
-                  <div className="mb-6">
-                    <div className="text-sm text-purple-200 line-through mb-1">$198</div>
-                    <div className="text-4xl font-bold mb-1">$116</div>
-                    <div className="text-sm text-purple-200">Billed annually at $1,399/year</div>
-                  </div>
-                  <div className="text-center py-4 bg-white/10 rounded mb-6">
-                    <div className="text-3xl font-bold">150</div>
-                    <div className="text-sm text-purple-200">CREDITS PER MONTH</div>
-                  </div>
-                  <ul className="space-y-3 text-sm mb-6">
-                    <li>• Everything in Creator</li>
-                    <li>• Priority video rendering</li>
-                    <li>• Custom avatars (2 included)</li>
-                    <li>• Advanced AI editing</li>
-                    <li>• Team collaboration tools</li>
-                    <li>• API access</li>
-                  </ul>
-                  <Button className="w-full bg-white text-purple-600 hover:bg-gray-100 font-semibold">
-                    Start Free Trial
-                  </Button>
-                </CardContent>
-              </Card>
-            </AnimatedSection>
-
-            {/* Studio Plan */}
-            <AnimatedSection delay={300}>
-              <Card className="bg-white/10 backdrop-blur border-white/20 text-white">
-                <CardContent className="pt-6">
-                  <h3 className="text-xl font-bold mb-2">Studio Members Only / Reseller-Ready</h3>
-                  <p className="text-sm text-purple-200 mb-6">
-                    For agencies and premium customers who want 100% hands-off solutions
-                  </p>
-                  <div className="mb-6">
-                    <div className="text-4xl font-bold mb-1">$499</div>
-                    <div className="text-sm text-purple-200">600 Credits</div>
-                  </div>
-                  <ul className="space-y-3 text-sm mb-6">
-                    <li>• 2 Additional Activator Licenses</li>
-                    <li>• Studio+ VIP Perks</li>
-                    <li>• Premium support & training</li>
-                    <li>• White-label options</li>
-                    <li>• Dedicated account manager</li>
-                    <li>• Custom integrations</li>
-                  </ul>
-                  <Button variant="outline" className="w-full border-white text-white hover:bg-white/10 bg-transparent">
-                    Contact Sales
+                  <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 px-8">
+                    Start Creating Videos
                   </Button>
                 </CardContent>
               </Card>
@@ -499,7 +421,7 @@ export function VideoLandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0a0518] text-white py-12 px-6">
+      <footer className="bg-gray-900 text-gray-400 py-12 px-6">
         <div className="container mx-auto">
           <AnimatedSection>
             <div className="grid md:grid-cols-2 gap-12 mb-8">
