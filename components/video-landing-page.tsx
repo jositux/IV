@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { VideoPopup } from "@/components/video-popup"
 import { Play, Percent, BookOpen, Heart, Monitor, FileText, ShoppingBag } from "lucide-react"
 import { useScrollAnimation } from "@/hooks/use-scroll-animation"
+import { UserMenu } from "@/components/auth/user-menu"
 
 function AnimatedSection({
   children,
@@ -49,9 +50,7 @@ export function VideoLandingPage() {
             <a href="#cases" className="hover:text-purple-400 transition">
               Learn Cases
             </a>
-            <a href="#" className="hover:text-purple-400 transition">
-              Login / Sign Up
-            </a>
+            <UserMenu />
           </nav>
         </div>
       </header>

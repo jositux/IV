@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useUser } from "@auth0/nextjs-auth0/client"
 import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,11 +12,13 @@ import SubscriptionCheckout from "@/components/subscription-checkout"
 export default function SubscriptionPlansPage() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
-
-  // TODO: Replace with actual user email from your auth system
-  const userEmail = "user@example.com"
+  const { user, isLoading } = useUser()
 
   const handleSelectPlan = (planId: string) => {
+    if (!user) {
+      window.location.href = "/api/auth/login?returnTo=/subscription/plans"
+      return
+    }
     setSelectedPlanId(planId)
     setIsCheckoutOpen(true)
   }
@@ -66,8 +69,13 @@ export default function SubscriptionPlansPage() {
             </CardContent>
 
             <CardFooter>
-              <Button onClick={() => handleSelectPlan(plan.id)} className="w-full text-base py-6" size="lg">
-                Comenzar {plan.name}
+              <Button
+                onClick={() => handleSelectPlan(plan.id)}
+                className="w-full text-base py-6"
+                size="lg"
+                disabled={isLoading}
+              >
+                {!user ? "Login to Subscribe" : `Comenzar ${plan.name}`}
               </Button>
             </CardFooter>
           </Card>
@@ -81,7 +89,7 @@ export default function SubscriptionPlansPage() {
             <DialogDescription>Complete los datos de pago para activar su suscripción</DialogDescription>
           </DialogHeader>
 
-          {selectedPlanId && <SubscriptionCheckout planId={selectedPlanId} customerEmail={userEmail} />}
+          {selectedPlanId && user?.email && <SubscriptionCheckout planId={selectedPlanId} customerEmail={user.email} />}
         </DialogContent>
       </Dialog>
     </div>
