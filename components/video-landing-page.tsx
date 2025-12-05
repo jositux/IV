@@ -4,9 +4,9 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { VideoPopup } from "@/components/video-popup"
-import { Play, Percent, BookOpen, Heart, Monitor, FileText, ShoppingBag } from "lucide-react"
+import { Play, Percent, BookOpen, Heart, Monitor, FileText, ShoppingBag, Check } from "lucide-react"
 import { useScrollAnimation } from "@/hooks/use-scroll-animation"
 
 function AnimatedSection({
@@ -402,16 +402,122 @@ export function VideoLandingPage() {
             <p className="text-purple-200">All plans include access to our AGI content platform and AI-features.</p>
           </AnimatedSection>
 
-          <div className="text-center">
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <AnimatedSection>
-              <Card className="bg-white/10 backdrop-blur border-white/20 text-white max-w-2xl mx-auto">
-                <CardContent className="pt-12 pb-12">
-                  <h3 className="text-3xl font-bold mb-4">Get Started Today</h3>
-                  <p className="text-lg text-purple-200 mb-8">
-                    Transform your content into professional videos with our AI-powered platform
-                  </p>
-                  <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 px-8">
-                    Start Creating Videos
+              <Card className="bg-white/10 backdrop-blur border-white/20 text-white">
+                <CardHeader>
+                  <CardTitle className="text-2xl">Starter</CardTitle>
+                  <CardDescription className="text-purple-200">Perfect for individuals and small teams</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold">$29</span>
+                    <span className="text-purple-200">/month</span>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>10 videos per month</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>720p resolution</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>Basic templates</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>Email support</span>
+                    </li>
+                  </ul>
+                  <Button variant="outline" className="w-full bg-transparent border-white text-white hover:bg-white/20">
+                    Get Started
+                  </Button>
+                </CardContent>
+              </Card>
+            </AnimatedSection>
+
+            <AnimatedSection>
+              <Card className="bg-white text-purple-900 border-2 border-yellow-400 relative">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-purple-900 px-4 py-1 rounded-full text-sm font-semibold">
+                  Most Popular
+                </div>
+                <CardHeader>
+                  <CardTitle className="text-2xl">Professional</CardTitle>
+                  <CardDescription className="text-purple-700">
+                    For growing businesses and content creators
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold">$79</span>
+                    <span className="text-purple-700">/month</span>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>50 videos per month</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>1080p resolution</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>Premium templates</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>Priority support</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-600" />
+                      <span>Custom branding</span>
+                    </li>
+                  </ul>
+                  <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">Get Started</Button>
+                </CardContent>
+              </Card>
+            </AnimatedSection>
+
+            <AnimatedSection>
+              <Card className="bg-white/10 backdrop-blur border-white/20 text-white">
+                <CardHeader>
+                  <CardTitle className="text-2xl">Enterprise</CardTitle>
+                  <CardDescription className="text-purple-200">
+                    For large organizations with custom needs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold">Custom</span>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>Unlimited videos</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>4K resolution</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>All templates</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>24/7 dedicated support</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400" />
+                      <span>API access</span>
+                    </li>
+                  </ul>
+                  <Button variant="outline" className="w-full bg-transparent border-white text-white hover:bg-white/20">
+                    Contact Sales
                   </Button>
                 </CardContent>
               </Card>
