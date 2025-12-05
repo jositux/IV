@@ -399,125 +399,154 @@ export function VideoLandingPage() {
         <div className="container mx-auto">
           <AnimatedSection className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">Simple. Transparent pricing</h2>
-            <p className="text-purple-200">All plans include access to our AGI content platform and AI-features.</p>
+            <p className="text-purple-200 text-lg">
+              All plans include access to our AGI-powered platform and all features.
+            </p>
           </AnimatedSection>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            {/* Creator Plan */}
             <AnimatedSection>
-              <Card className="bg-white/10 backdrop-blur border-white/20 text-white">
+              <Card className="bg-purple-900/40 backdrop-blur border-purple-500/30 text-white relative">
                 <CardHeader>
-                  <CardTitle className="text-2xl">Starter</CardTitle>
-                  <CardDescription className="text-purple-200">Perfect for individuals and small teams</CardDescription>
+                  <CardTitle className="text-2xl font-semibold mb-2">Creator</CardTitle>
+                  <CardDescription className="text-purple-200 text-sm leading-relaxed">
+                    Perfect for individuals and small businesses getting started with professional video content.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold">$29</span>
-                    <span className="text-purple-200">/month</span>
+                  <div className="mb-4">
+                    <span className="text-gray-400 line-through text-xl mr-2">$59</span>
+                    <span className="text-5xl font-bold">$50</span>
+                    <span className="text-purple-200 text-lg">/month</span>
                   </div>
-                  <ul className="space-y-3 mb-6">
+                  <p className="text-sm text-purple-200 mb-6">Billed annually at $600/year</p>
+
+                  {/* Credits Box */}
+                  <div className="bg-gray-900/80 rounded-lg p-6 mb-6 text-center">
+                    <div className="text-5xl font-bold mb-2">60</div>
+                    <div className="text-sm text-gray-300 uppercase tracking-wide">Credits per month</div>
+                  </div>
+
+                  <ul className="space-y-3 mb-8">
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>10 videos per month</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">All platform features included</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>720p resolution</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">Professional avatars in 30+ languages</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>Basic templates</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">AGI-powered Video Script generation</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>Email support</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">Video Landing Pages & Long-form Articles</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">GEO Optimization for AI search</span>
                     </li>
                   </ul>
-                  <Button variant="outline" className="w-full bg-transparent border-white text-white hover:bg-white/20">
-                    Get Started
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-base font-semibold">
+                    Select Plan
                   </Button>
                 </CardContent>
               </Card>
             </AnimatedSection>
 
+            {/* Studio Plan */}
             <AnimatedSection>
-              <Card className="bg-white text-purple-900 border-2 border-yellow-400 relative">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-purple-900 px-4 py-1 rounded-full text-sm font-semibold">
+              <Card className="bg-purple-900/40 backdrop-blur border-purple-500/30 text-white relative">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-2 rounded-md text-sm font-semibold">
                   Most Popular
                 </div>
-                <CardHeader>
-                  <CardTitle className="text-2xl">Professional</CardTitle>
-                  <CardDescription className="text-purple-700">
-                    For growing businesses and content creators
+                <CardHeader className="pt-8">
+                  <CardTitle className="text-2xl font-semibold mb-2">Studio</CardTitle>
+                  <CardDescription className="text-purple-200 text-sm leading-relaxed">
+                    For growing businesses and teams that need more content and personalization.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold">$79</span>
-                    <span className="text-purple-700">/month</span>
+                  <div className="mb-4">
+                    <span className="text-gray-400 line-through text-xl mr-2">$129</span>
+                    <span className="text-5xl font-bold">$116</span>
+                    <span className="text-purple-200 text-lg">/month</span>
                   </div>
-                  <ul className="space-y-3 mb-6">
+                  <p className="text-sm text-purple-200 mb-6">Billed annually at $1,393/year</p>
+
+                  {/* Credits Box */}
+                  <div className="bg-gray-900/80 rounded-lg p-6 mb-6 text-center">
+                    <div className="text-5xl font-bold mb-2">150</div>
+                    <div className="text-sm text-gray-300 uppercase tracking-wide">Credits per month</div>
+                  </div>
+
+                  <ul className="space-y-3 mb-8">
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-600" />
-                      <span>50 videos per month</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">Everything in Creator, plus:</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-600" />
-                      <span>1080p resolution</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">1 Personal Custom Avatar</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-600" />
-                      <span>Premium templates</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">Priority processing</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-600" />
-                      <span>Priority support</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">Access to Studio Boost</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-600" />
-                      <span>Custom branding</span>
+                      <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <span className="text-sm">Email support</span>
                     </li>
                   </ul>
-                  <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">Get Started</Button>
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-base font-semibold">
+                    Select Plan
+                  </Button>
                 </CardContent>
               </Card>
             </AnimatedSection>
 
+            {/* Studio Boost */}
             <AnimatedSection>
-              <Card className="bg-white/10 backdrop-blur border-white/20 text-white">
+              <Card className="bg-purple-900/40 backdrop-blur border-purple-500/30 text-white">
                 <CardHeader>
-                  <CardTitle className="text-2xl">Enterprise</CardTitle>
-                  <CardDescription className="text-purple-200">
-                    For large organizations with custom needs
+                  <CardTitle className="text-2xl font-semibold mb-2">Studio Members Only / Studio Boost</CardTitle>
+                  <CardDescription className="text-purple-200 text-sm leading-relaxed">
+                    Need more credits? Purchase our Studio Boost pack anytime to supercharge your content production.
+                    Only available to Studio plan members.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold">Custom</span>
-                  </div>
-                  <ul className="space-y-3 mb-6">
+                  <ul className="space-y-2 mb-6 text-sm">
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>Unlimited videos</span>
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>600 credits</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>4K resolution</span>
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>2 Additional Personal Avatars</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>All templates</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>24/7 dedicated support</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-green-400" />
-                      <span>API access</span>
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Never expires</span>
                     </li>
                   </ul>
-                  <Button variant="outline" className="w-full bg-transparent border-white text-white hover:bg-white/20">
-                    Contact Sales
+
+                  {/* Boost Pricing Box */}
+                  <div className="border-2 border-blue-600 rounded-lg p-6 mb-6">
+                    <div className="text-5xl font-bold mb-4">$499</div>
+                    <div className="text-3xl font-bold mb-4">600 Credits</div>
+                    <p className="text-sm text-purple-200">One-time purchase Requires Studio plan</p>
+                  </div>
+
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-base font-semibold">
+                    Purchase Boost
                   </Button>
                 </CardContent>
               </Card>
