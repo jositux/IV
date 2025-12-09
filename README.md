@@ -18,11 +18,6 @@ Your project is live at:
 
 **[https://vercel.com/josituxs-projects/v0-stripe-subscription-system](https://vercel.com/josituxs-projects/v0-stripe-subscription-system)**
 
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.app/chat/rStnNhQavze](https://v0.app/chat/rStnNhQavze)**
 
 ## How It Works
 
