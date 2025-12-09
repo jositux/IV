@@ -1,14 +1,16 @@
 # Intelligence Video
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+## 💡 System Definition: AI-Powered Corporate Video Generation
+
+**Intelligence Video** is a specialized platform designed to **facilitate corporate entities** in rapidly generating high-quality content using Artificial Intelligence, with a primary focus on **video production**. This system streamlines the creation process, enabling businesses to produce professional, scalable video assets efficiently.
+
+---
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/josituxs-projects/v0-stripe-subscription-system)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/rStnNhQavze)
 
 ## Overview
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+This project is built using the **Next.js** framework for full-stack React development, utilizing the speed and consistency of **Yarn** for package management. The application is designed for high performance, server-side rendering, and easy deployment on **Vercel**.
 
 ## Deployment
 
