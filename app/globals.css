@@ -75,8 +75,9 @@
 }
 
 @theme inline {
-  --font-sans: "Geist", "Geist Fallback";
-  --font-mono: "Geist Mono", "Geist Mono Fallback";
+  /* 👇 CAMBIO: Actualizar las variables de fuente */
+  --font-sans: "Inter", "sans-serif"; 
+  --font-mono: "Inter", "monospace";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -181,4 +182,11 @@
 
 .animate-delay-600 {
   animation-delay: 0.6s;
+}
+
+.hero-gradient-text {
+  background: linear-gradient(to right, #9333ea, #3b82f6, #06b6d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
