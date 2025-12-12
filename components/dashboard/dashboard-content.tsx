@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
+import { AppHeader } from "@/components/shared/app-header"
 
 const stats = [
   { label: "Total videos", value: 0, icon: Video },
@@ -22,36 +23,8 @@ export function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600">
-              <span className="text-2xl font-bold text-white">i</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">IntelligentVideos.ai</h1>
-              <p className="text-xs text-gray-600">Artificial General Intelligence Reasoning Model</p>
-            </div>
-          </div>
+           <AppHeader/>
 
-          <nav className="flex items-center gap-6">
-            <Link href="/dashboard/projects" className="text-sm font-medium text-gray-900 hover:text-gray-600">
-              My Projects
-            </Link>
-            <span className="text-sm font-medium text-gray-900">Credits: 12</span>
-            <Link href="/help" className="text-sm font-medium text-gray-900 hover:text-gray-600">
-              Help
-            </Link>
-            <button className="flex items-center gap-2 text-sm font-medium text-gray-900 hover:text-gray-600">
-              Anna Stuart
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
-                <User className="h-4 w-4" />
-              </div>
-            </button>
-          </nav>
-        </div>
-      </header>
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-6 py-8">
@@ -113,7 +86,7 @@ export function DashboardContent() {
             <h2 className="mb-4 text-5xl font-bold text-gray-900">Create My First Video</h2>
 
             <p className="mb-8 text-gray-600">PDFs, Word docs, and Web pages are ≈ 400 words each</p>
-
+            <Link href="/inputs" className="cursor-pointer">
             <Button
               size="lg"
               className="rounded-full bg-pink-500 px-8 py-6 text-lg font-semibold text-white hover:bg-pink-600"
@@ -121,6 +94,7 @@ export function DashboardContent() {
               <ArrowRight className="mr-2 h-5 w-5" />
               Go to create
             </Button>
+            </Link>
           </CardContent>
         </Card>
       </main>
