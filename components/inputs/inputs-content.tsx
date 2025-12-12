@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Upload, Plus, X, FileText, Globe, Sparkles, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
+import { AppHeader } from "@/components/shared/app-header"
+
 
 const avatars = [
   { name: "Gloria" },
@@ -112,36 +114,10 @@ export function InputsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">i</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">IntelligentVideos.ai</h1>
-              <p className="text-xs text-gray-600">Artificial General Intelligence Reasoning Model</p>
-            </div>
-          </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/dashboard" className="text-gray-700 hover:text-gray-900">
-              My Projects
-            </Link>
-            <span className="text-gray-700">Credits: 12</span>
-            <Link href="/help" className="text-gray-700 hover:text-gray-900">
-              Help
-            </Link>
-            <Button variant="ghost" className="gap-2">
-              Anna Stuart
-              <div className="w-8 h-8 bg-gray-300 rounded-full" />
-            </Button>
-          </nav>
-        </div>
-      </header>
+      
 
       <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Hero Section */}
+        <AppHeader/>
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Simple Inputs, Extraordinary Results</h1>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
@@ -516,10 +492,12 @@ export function InputsContent() {
                 Estimated Cost: <span className="font-bold text-gray-900">{calculateTotalCredits()} Credits</span>
               </span>
             </div>
+            <Link href="/generation" className="cursor-pointer">
             <Button size="lg" className="bg-pink-500 hover:bg-pink-600 text-white px-12">
               <Sparkles className="w-5 h-5 mr-2" />
               Generate
             </Button>
+            </Link>
           </div>
         </div>
       </div>
