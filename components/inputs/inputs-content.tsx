@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,10 +9,8 @@ import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Upload, Plus, X, FileText, Globe, Sparkles, CheckCircle2 } from "lucide-react"
-import Link from "next/link"
+import { Upload, Plus, X, FileText, Globe, Sparkles, CheckCircle2, Trash2 } from "lucide-react"
 import { AppHeader } from "@/components/shared/app-header"
-
 
 const avatars = [
   { name: "Gloria" },
@@ -63,14 +62,7 @@ const additionalProducts = [
 
 export function InputsContent() {
   const [text, setText] = useState("")
-  const [keywords, setKeywords] = useState("Coffee, Health, Health benefits of coffee")
-  const [targetAudience, setTargetAudience] = useState("Marketing specialists / Business executives")
-  const [files, setFiles] = useState<string[]>([
-    "Analysis Data April.ppt",
-    "Sequence Data.doc",
-    "DNA Sequence.xls",
-    "Electrometer Data.jpg",
-  ])
+  const [files, setFiles] = useState<File[]>([])
   const [urls, setUrls] = useState<string[]>(["www.espn.com", "www.britannica.com", "www.reddit.co/hubermann"])
   const [newUrl, setNewUrl] = useState("")
   const [selectedAvatar, setSelectedAvatar] = useState("Gloria")
@@ -79,6 +71,8 @@ export function InputsContent() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [videoPosition, setVideoPosition] = useState("standard")
   const [videoSize, setVideoSize] = useState("standard")
+  const [keywords, setKeywords] = useState("")
+  const [targetAudience, setTargetAudience] = useState("")
 
   const maxWords = 20000
   const wordsUsed = 2621
@@ -99,6 +93,18 @@ export function InputsContent() {
     setFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files
+    if (selectedFiles) {
+      const newFiles = Array.from(selectedFiles)
+      setFiles((prev) => [...prev, ...newFiles])
+    }
+  }
+
+  const triggerFileInput = () => {
+    document.getElementById("file-upload")?.click()
+  }
+
   const toggleProduct = (title: string) => {
     setSelectedProducts((prev) => (prev.includes(title) ? prev.filter((p) => p !== title) : [...prev, title]))
   }
@@ -114,10 +120,11 @@ export function InputsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
-       <AppHeader/>
+      {/* Shared Header */}
+      <AppHeader />
 
-      <div className="max-w-7xl mx-auto px-6 py-12">
-       
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Hero Section */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Simple Inputs, Extraordinary Results</h1>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
@@ -198,10 +205,21 @@ export function InputsContent() {
             {/* File Upload */}
             <div>
               <Label className="text-base font-semibold mb-3 block">PDF, PowerPoint, JPEG, XLSX, Word</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4 hover:border-blue-400 transition-colors cursor-pointer">
+              <div
+                onClick={triggerFileInput}
+                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4 hover:border-blue-400 transition-colors cursor-pointer"
+              >
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-600 mb-1">Drag & drop files here or click to browse</p>
                 <p className="text-sm text-gray-500">Supports: PDF, PPT, JPEG, XLSX, Word</p>
+                <input
+                  id="file-upload"
+                  type="file"
+                  multiple
+                  accept=".pdf,.ppt,.pptx,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
               </div>
 
               {files.length > 0 && (
@@ -210,10 +228,10 @@ export function InputsContent() {
                     <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-gray-600" />
-                        <span className="text-sm text-gray-700">{file}</span>
+                        <span className="text-sm text-gray-700">{file.name}</span>
                       </div>
                       <Button variant="ghost" size="sm" onClick={() => removeFile(index)} className="h-8 w-8 p-0">
-                        <X className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-500" />
                       </Button>
                     </div>
                   ))}
@@ -492,12 +510,10 @@ export function InputsContent() {
                 Estimated Cost: <span className="font-bold text-gray-900">{calculateTotalCredits()} Credits</span>
               </span>
             </div>
-            <Link href="/generation" className="cursor-pointer">
             <Button size="lg" className="bg-pink-500 hover:bg-pink-600 text-white px-12">
               <Sparkles className="w-5 h-5 mr-2" />
               Generate
             </Button>
-            </Link>
           </div>
         </div>
       </div>
