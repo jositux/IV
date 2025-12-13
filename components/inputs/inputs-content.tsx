@@ -114,10 +114,10 @@ export function InputsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
-      
+       <AppHeader/>
 
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <AppHeader/>
+       
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Simple Inputs, Extraordinary Results</h1>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
