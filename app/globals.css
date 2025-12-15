@@ -184,9 +184,3 @@
   animation-delay: 0.6s;
 }
 
-.hero-gradient-text {
-  background: linear-gradient(to right, #9333ea, #3b82f6, #06b6d4);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}

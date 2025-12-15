@@ -1,27 +1,37 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ChevronRight, ChevronDown, ChevronUp, Play, Download, Copy, Check } from "lucide-react"
-import Link from "next/link"
-import { AppHeader } from "@/components/shared/app-header"
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Copy,
+  Check,
+} from "lucide-react";
+import Link from "next/link";
+import { AppHeader } from "@/components/shared/app-header";
+//import Plyr from "plyr";
+//import "plyr/dist/plyr.css";
+//import Hls from "hls.js";
 
 interface Section {
-  subtitle: string
-  description?: string
-  items?: string[]
-  codeContent?: string
+  subtitle: string;
+  description?: string;
+  items?: string[];
+  codeContent?: string;
 }
 
 interface Deliverable {
-  id: string
-  title: string
-  content?: string
-  description?: string
-  codeContent?: string
-  imagePreview?: boolean
-  sections?: Section[]
+  id: string;
+  title: string;
+  content?: string;
+  description?: string;
+  codeContent?: string;
+  imagePreview?: boolean;
+  sections?: Section[];
 }
 
 const projectDeliverables = [
@@ -32,7 +42,7 @@ const projectDeliverables = [
   { label: "3 Images", color: "bg-blue-100 text-blue-700 border-blue-300" },
   { label: "16 Link Info", color: "bg-blue-100 text-blue-700 border-blue-300" },
   { label: "7 HTML", color: "bg-blue-100 text-blue-700 border-blue-300" },
-]
+];
 
 const deliverables: Deliverable[] = [
   {
@@ -64,14 +74,16 @@ const deliverables: Deliverable[] = [
       },
       {
         subtitle: "WHAT YOU'LL DO",
-        description: "Add your videotag code to any page on your website in just 2 simple steps",
+        description:
+          "Add your videotag code to any page on your website in just 2 simple steps",
       },
     ],
   },
   {
     id: "sticky-geo",
     title: "Sticky Video with GEO Optimization",
-    description: "SEO-optimized sticky video embed script with advanced features and GEO optimization.",
+    description:
+      "SEO-optimized sticky video embed script with advanced features and GEO optimization.",
     codeContent: `<div id="sticky-video-container" data-position="bottom-right">
   <div class="sticky-video-wrapper">
     <iframe src="https://intelligentvideos.ai/embed/abc123xyz" 
@@ -92,7 +104,8 @@ const deliverables: Deliverable[] = [
   {
     id: "advantages",
     title: "Sticky Video Advantages Page",
-    content: "Congratulations! You Just Made the Smartest Decision for Your Business",
+    content:
+      "Congratulations! You Just Made the Smartest Decision for Your Business",
     description:
       "While your competitors are still using basic embed codes, you're now equipped with professional sticky video implementation that delivers higher engagement and better conversion rates.",
     imagePreview: true,
@@ -125,7 +138,8 @@ analytics features">`,
     sections: [
       {
         subtitle: "KEYWORD RESEARCH ANALYSIS",
-        description: "PRIMARY KEYWORDS (with Search Volume & Competition Analysis)",
+        description:
+          "PRIMARY KEYWORDS (with Search Volume & Competition Analysis)",
         items: [
           "1 Health Benefits of Creative",
           "Search Volume: 9,500/month",
@@ -170,28 +184,80 @@ initial-scale=1.0">
   <meta name="ICBM" content="37.7749, -122.4194">
 </head>`,
   },
-]
+];
 
 export function GenerationContent() {
-  const [expandedSections, setExpandedSections] = useState<string[]>(["direct-play"])
-  const [copiedItems, setCopiedItems] = useState<string[]>([])
-  const [collapsedMainSections, setCollapsedMainSections] = useState<string[]>([])
+  const [expandedSections, setExpandedSections] = useState<string[]>([
+    "direct-play",
+  ]);
+  const [copiedItems, setCopiedItems] = useState<string[]>([]);
+  const [collapsedMainSections, setCollapsedMainSections] = useState<string[]>(
+    []
+  );
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  /*
+  useEffect(() => {
+    if (!videoRef.current) return;
+
+    const video = videoRef.current;
+    const videoSrc = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
+
+    video.play;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(videoSrc);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        new Plyr(video, {
+          controls: [
+            "play-large",
+            "play",
+            "progress",
+            "current-time",
+            "mute",
+            "volume",
+            "fullscreen",
+          ],
+        });
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = videoSrc;
+      new Plyr(video, {
+        controls: [
+          "play-large",
+          "play",
+          "progress",
+          "current-time",
+          "mute",
+          "volume",
+          "fullscreen",
+        ],
+      });
+    }
+  }, []);
+  */
 
   const toggleSection = (id: string) => {
-    setExpandedSections((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
-  }
+    setExpandedSections((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
 
   const toggleMainSection = (id: string) => {
-    setCollapsedMainSections((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
-  }
+    setCollapsedMainSections((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
 
   const handleCopy = async (content: string, id: string) => {
-    await navigator.clipboard.writeText(content)
-    setCopiedItems((prev) => [...prev, id])
+    await navigator.clipboard.writeText(content);
+    setCopiedItems((prev) => [...prev, id]);
     setTimeout(() => {
-      setCopiedItems((prev) => prev.filter((item) => item !== id))
-    }, 2000)
-  }
+      setCopiedItems((prev) => prev.filter((item) => item !== id));
+    }, 2000);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -200,13 +266,20 @@ export function GenerationContent() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Breadcrumb */}
-        <div className="text-sm text-gray-600 mb-2">Dashboard / Video and GEO/SEO Sticky Video Code</div>
+        <div className="text-sm text-gray-600 mb-2">
+          Dashboard / Video and GEO/SEO Sticky Video Code
+        </div>
 
         {/* Title and Button */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-4xl font-bold text-gray-900">Coffee health benefits</h2>
+          <h2 className="text-4xl font-bold text-gray-900">
+            Coffee health benefits
+          </h2>
           <Link href="/dashboard">
-            <Button variant="outline" className="cursor-pointer gap-2 bg-transparent">
+            <Button
+              variant="outline"
+              className="cursor-pointer gap-2 bg-transparent"
+            >
               Go to Dashboard
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -215,10 +288,15 @@ export function GenerationContent() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          <Button variant="default" className="bg-blue-600 hover:bg-blue-700 p-6">
+          <Button
+            variant="default"
+            className="bg-blue-600 hover:bg-blue-700 p-6"
+          >
             <div className="text-left">
               <div className="font-semibold text-sm">Video Suction</div>
-              <div className="text-xs opacity-90">Professional Script Generation</div>
+              <div className="text-xs opacity-90">
+                Professional Script Generation
+              </div>
             </div>
           </Button>
           <Button variant="outline" className="p-6 bg-transparent">
@@ -245,11 +323,27 @@ export function GenerationContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Video Preview */}
           <div className="lg:col-span-2 space-y-6">
+            <div className="w-full max-w-full mx-auto overflow-hidden rounded-lg shadow-2xl">
+              <div className="relative pt-[56.25%]">
+                <iframe
+                  src="https://iframe.mediadelivery.net/embed/346829/462ddccd-3f00-42ff-9c75-517eab1d0aff?autoplay=true&loop=true&muted=false&preload=true&responsive=true"
+                  title="Reproductor de Video Personalizado"
+                  loading="lazy"
+                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full rounded-lg"
+                ></iframe>
+              </div>
+            </div>
+
             {/* Video Player */}
-            <div className="bg-gray-300 rounded-lg aspect-video flex items-center justify-center relative">
-              <Button size="lg" className="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-700 cursor-pointer">
-                <Play className="w-8 h-8 fill-white" />
-              </Button>
+            <div className="hidden bg-black rounded-lg aspect-video overflow-hidden">
+              <video
+                ref={videoRef}
+                className="w-full h-full"
+                playsInline
+                controls
+              />
             </div>
 
             {/* Sticky Video with GEO Optimization */}
@@ -258,7 +352,9 @@ export function GenerationContent() {
                 onClick={() => toggleMainSection("sticky-geo")}
                 className="w-full flex items-start justify-between p-6 text-left cursor-pointer transition-all duration-300 ease-in-out"
               >
-                <h3 className="text-lg font-semibold text-gray-900">Sticky Video with GEO Optimization</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Sticky Video with GEO Optimization
+                </h3>
                 {collapsedMainSections.includes("sticky-geo") ? (
                   <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0 mt-1 transition-transform duration-300" />
                 ) : (
@@ -268,30 +364,45 @@ export function GenerationContent() {
 
               <div
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  collapsedMainSections.includes("sticky-geo") ? "max-h-0 opacity-0" : "max-h-[1000px] opacity-100"
+                  collapsedMainSections.includes("sticky-geo")
+                    ? "max-h-0 opacity-0"
+                    : "max-h-[1000px] opacity-100"
                 }`}
               >
                 <div className="px-6 pb-6 space-y-4">
                   <p className="text-sm text-gray-700">
-                    SEO-Optimized sticky video implementation designed to increase conversions by letting your custom
-                    video
+                    SEO-Optimized sticky video implementation designed to
+                    increase conversions by letting your custom video
                     <br />
                     <strong className="text-gray-900">
-                      automatically play position throughout all confidence in lifting your custom SEO...
+                      automatically play position throughout all confidence in
+                      lifting your custom SEO...
                     </strong>
                   </p>
                   <div className="bg-gray-900 text-gray-300 p-4 rounded font-mono text-xs overflow-x-auto">
                     <div>&lt;div id="sticky-video-container"&gt;</div>
-                    <div className="ml-4">&lt;script src="sticky-video.js"&gt;&lt;/script&gt;</div>
-                    <div className="ml-4">&lt;!--Video positioning throughout all confidence--&gt;</div>
+                    <div className="ml-4">
+                      &lt;script src="sticky-video.js"&gt;&lt;/script&gt;
+                    </div>
+                    <div className="ml-4">
+                      &lt;!--Video positioning throughout all confidence--&gt;
+                    </div>
                     <div>&lt;/div&gt;</div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="cursor-pointer bg-transparent">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer bg-transparent"
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Download
                     </Button>
-                    <Button variant="outline" size="sm" className="cursor-pointer bg-transparent">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer bg-transparent"
+                    >
                       <Copy className="w-4 h-4 mr-2" />
                       Copy
                     </Button>
@@ -306,7 +417,9 @@ export function GenerationContent() {
                 onClick={() => toggleMainSection("advantages")}
                 className="w-full flex items-start justify-between p-6 text-left cursor-pointer transition-all duration-300 ease-in-out"
               >
-                <h3 className="text-lg font-semibold text-gray-900">Sticky Video Advantages Page</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Sticky Video Advantages Page
+                </h3>
                 {collapsedMainSections.includes("advantages") ? (
                   <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0 mt-1 transition-transform duration-300" />
                 ) : (
@@ -316,18 +429,23 @@ export function GenerationContent() {
 
               <div
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  collapsedMainSections.includes("advantages") ? "max-h-0 opacity-0" : "max-h-[1000px] opacity-100"
+                  collapsedMainSections.includes("advantages")
+                    ? "max-h-0 opacity-0"
+                    : "max-h-[1000px] opacity-100"
                 }`}
               >
                 <div className="px-6 pb-6">
                   <div className="bg-gray-200 rounded p-8 text-center">
                     <div className="text-4xl mb-2">🎉</div>
                     <h4 className="text-2xl font-bold text-gray-900 mb-4">
-                      Congratulations! You Just Made the Smartest Decision for Your Business
+                      Congratulations! You Just Made the Smartest Decision for
+                      Your Business
                     </h4>
                     <p className="text-gray-700">
-                      While your competitors are still using basic embed codes, you're now equipped with professional
-                      sticky video implementation that delivers higher engagement and better conversion rates.
+                      While your competitors are still using basic embed codes,
+                      you're now equipped with professional sticky video
+                      implementation that delivers higher engagement and better
+                      conversion rates.
                     </p>
                   </div>
                 </div>
@@ -339,7 +457,9 @@ export function GenerationContent() {
           <div className="space-y-4">
             {/* Project Deliverables Header */}
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Project Deliverables</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Project Deliverables
+              </h3>
               <div className="flex flex-wrap gap-2 mb-3">
                 {projectDeliverables.map((item, index) => (
                   <Badge key={index} variant="outline" className={item.color}>
@@ -348,7 +468,11 @@ export function GenerationContent() {
                 ))}
               </div>
 
-              <Button variant="outline" size="sm" className="cursor-pointer w-full bg-transparent">
+              <Button
+                variant="outline"
+                size="sm"
+                className="cursor-pointer w-full bg-transparent"
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Download All
               </Button>
@@ -357,12 +481,17 @@ export function GenerationContent() {
             {/* Collapsible Deliverables */}
             <div className="space-y-3">
               {deliverables.map((item) => (
-                <div key={item.id} className="bg-white border border-gray-200 rounded-lg">
+                <div
+                  key={item.id}
+                  className="bg-white border border-gray-200 rounded-lg"
+                >
                   <button
                     onClick={() => toggleSection(item.id)}
                     className="w-full flex items-center justify-between p-4 text-left cursor-pointer transition-all duration-300 ease-in-out"
                   >
-                    <span className="font-medium text-gray-900 text-sm">{item.title}</span>
+                    <span className="font-medium text-gray-900 text-sm">
+                      {item.title}
+                    </span>
                     {expandedSections.includes(item.id) ? (
                       <ChevronUp className="w-4 h-4 text-gray-500 transition-transform duration-300" />
                     ) : (
@@ -372,7 +501,9 @@ export function GenerationContent() {
 
                   <div
                     className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                      expandedSections.includes(item.id) ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+                      expandedSections.includes(item.id)
+                        ? "max-h-[2000px] opacity-100"
+                        : "max-h-0 opacity-0"
                     }`}
                   >
                     <div className="px-4 pb-4 space-y-3">
@@ -384,14 +515,22 @@ export function GenerationContent() {
 
                       {item.codeContent && (
                         <div className="bg-gray-900 text-gray-300 p-3 rounded font-mono text-xs overflow-x-auto">
-                          <pre className="whitespace-pre-wrap">{item.codeContent}</pre>
+                          <pre className="whitespace-pre-wrap">
+                            {item.codeContent}
+                          </pre>
                         </div>
                       )}
 
                       {item.sections?.map((section, idx) => (
                         <div key={idx} className="space-y-2">
-                          <h4 className="font-semibold text-xs text-gray-900">{section.subtitle}</h4>
-                          {section.description && <p className="text-xs text-gray-600">{section.description}</p>}
+                          <h4 className="font-semibold text-xs text-gray-900">
+                            {section.subtitle}
+                          </h4>
+                          {section.description && (
+                            <p className="text-xs text-gray-600">
+                              {section.description}
+                            </p>
+                          )}
                           {section.items && (
                             <ul className="list-disc list-inside space-y-1 text-xs text-gray-700">
                               {section.items.map((listItem, i) => (
@@ -401,7 +540,9 @@ export function GenerationContent() {
                           )}
                           {section.codeContent && (
                             <div className="bg-gray-900 text-gray-300 p-3 rounded font-mono text-xs overflow-x-auto">
-                              <pre className="whitespace-pre-wrap">{section.codeContent}</pre>
+                              <pre className="whitespace-pre-wrap">
+                                {section.codeContent}
+                              </pre>
                             </div>
                           )}
                         </div>
@@ -412,7 +553,12 @@ export function GenerationContent() {
                           variant="outline"
                           size="sm"
                           className="text-xs bg-transparent"
-                          onClick={() => handleCopy(item.content || item.codeContent || "", item.id)}
+                          onClick={() =>
+                            handleCopy(
+                              item.content || item.codeContent || "",
+                              item.id
+                            )
+                          }
                         >
                           {copiedItems.includes(item.id) ? (
                             <>
@@ -426,9 +572,13 @@ export function GenerationContent() {
                             </>
                           )}
                         </Button>
-                        <Button variant="outline" size="sm" className="text-xs bg-transparent">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs bg-transparent"
+                        >
                           <Download className="w-3 h-3 mr-1" />
-                          Download 
+                          Download
                         </Button>
                       </div>
                     </div>
@@ -440,5 +590,5 @@ export function GenerationContent() {
         </div>
       </div>
     </div>
-  )
+  );
 }

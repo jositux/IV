@@ -1,0 +1,29 @@
+
+
+.homeContainer {
+  background-image: url('/background-container.jpg');
+  background-color: transparent; 
+  background-size: cover;
+  background-position: center;
+}
+
+.hero {
+  background-image: url('/background-home.jpg'); 
+  background-size: cover;
+  background-position: center;
+}
+
+.heroText {
+  background: linear-gradient(80deg, #CBB4FD, #8CE4FD, #8CE4FD);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1em;
+  letter-spacing: -2%;
+}
+
+.priceContainer {
+  background-image: url('/background-price.jpg'); 
+  background-size: cover;
+  background-position: center;
+}
