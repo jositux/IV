@@ -1,19 +1,20 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { User } from "lucide-react"
+import Image from "next/image";
+
 
 export function AppHeader() {
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">i</span>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">IntelligentVideos.ai</h1>
-            <p className="text-xs text-gray-600">Artificial General Intelligence Reasoning Model</p>
-          </div>
+        <Image
+                src="/logofooter.svg"
+                alt="Logo"
+                width={200}
+                height={50}
+              />
         </Link>
         <nav className="flex items-center gap-6">
           <Link href="/dashboard" className="text-sm font-medium text-gray-700 hover:text-gray-900">

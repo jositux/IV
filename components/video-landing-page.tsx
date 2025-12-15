@@ -1,6 +1,8 @@
 "use client";
 
 import type React from "react";
+import styles from "./home.module.css";
+import Image from "next/image";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -52,109 +54,99 @@ export function VideoLandingPage() {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   return (
-    <div className="min-w-full">
-      {/* Header */}
-      <header className="bg-[#1a0b2e] text-white py-4 px-6">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-purple-600 rounded"></div>
-            <span className="text-xl font-bold">IntelligentVideos</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <a
-              href="#how-it-works"
-              className="hover:text-purple-400 transition"
-            >
-              How it Works
-            </a>
-            <a href="#pricing" className="hover:text-purple-400 transition">
-              Pricing
-            </a>
-            <a href="#cases" className="hover:text-purple-400 transition">
-              Learn Cases
-            </a>
-            <a href="#" className="hover:text-purple-400 transition">
-              Login / Sign Up
-            </a>
-          </nav>
-        </div>
-      </header>
-
-
-
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-purple-900 via-purple-800 to-fuchsia-900 text-white py-20 px-6 overflow-hidden">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="z-10 fade-in-up p-6">
-              <p className="text-purple-300 text-sm mb-4 uppercase tracking-wide">
-                AI-Powered, Intelligence-Driven Video
-              </p>
-              <h1 className="text-5xl md:text-6xl font-bold mb-6 text-balance leading-tight">
-                From Concept to Professional Video in Minutes
-              </h1>
-              <p className="text-lg text-purple-200 mb-8 text-pretty">
-                Give GPT the future of AGI content creation! Broadcast-quality
-                videos, 140+ Generative avatars, smart scripts, voices & DIY or
-                done-for-you editing. No camera, crew or experience.
-              </p>
-              <Button
-                size="lg"
-                className="bg-purple-600 hover:bg-purple-700 text-white px-8"
-                onClick={() => setIsVideoOpen(true)}
-              >
-                <Play className="mr-2 h-5 w-5" />
-                Get Started for $1
-              </Button>
+    <div className={`${styles.homeContainer} min-w-full p-4`}>
+      <div className={`${styles.hero} rounded-[20px] overflow-hidden`}>
+        {/* Header */}
+        <header className="text-white py-8 px-6">
+          <div className="container mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Image
+                src="/logoiv.svg"
+                alt="Logo"
+                layout="responsive"
+                width={4}
+                height={3}
+              />
             </div>
-
-            {/* Hero Image with Video Trigger */}
-            <div className="relative z-10 fade-in-up animate-delay-300">
-              <div
-                className="relative cursor-pointer group"
-                onClick={() => setIsVideoOpen(true)}
+            <nav className="hidden md:flex items-center gap-6">
+              <a
+                href="#how-it-works"
+                className="hover:text-purple-400 transition"
               >
-                <div className="relative rounded-lg overflow-hidden shadow-2xl">
-                  <img
-                    src="/professional-woman-in-orange-sweater-presenting-on.jpg"
-                    alt="Video preview"
-                    className="w-full h-auto"
-                  />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition flex items-center justify-center">
-                    <div className="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center group-hover:scale-110 transition">
-                      <Play className="w-10 h-10 text-purple-600 ml-1" />
+                How it Works
+              </a>
+              <a href="#pricing" className="hover:text-purple-400 transition">
+                Pricing
+              </a>
+              <a href="#cases" className="hover:text-purple-400 transition">
+                Learn Cases
+              </a>
+              <a href="#" className="hover:text-purple-400 transition">
+                Login / Sign Up
+              </a>
+            </nav>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <section className="relative text-white pt-20 pb-30 px-6 overflow-hidden">
+          <div className="container mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div className="z-10 fade-in-up">
+                <p className="text-[#2FAEF9] text-sm mb-4 uppercase tracking-wide">
+                  Artificial General Intelligence Reasoning Model
+                </p>
+                <h1 className={`${styles.heroText} text-6xl mb-8 font-medium`}>
+                  From Concept to
+                  <br /> Professional Video
+                  <br /> in Minutes
+                </h1>
+                <p className="text-lg text-[#C9EBFF] mb-8 font-medium">
+                  Step into the future of AGI content creation Broadcast-ready
+                  videos, GEO-Optimized articles, social media posts, emails &
+                  PPTs Experience writing that transcends human limitations
+                </p>
+                <Button
+                  size="lg"
+                  className="bg-[#6D58BB] cursor-pointer text-white px-8"
+                  onClick={() => setIsVideoOpen(true)}
+                >
+                  Start Creating Now →
+                </Button>
+              </div>
+
+              {/* Hero Image with Video Trigger */}
+              <div className="relative z-10 fade-in-up animate-delay-300">
+                <div
+                  className="relative cursor-pointer group"
+                  onClick={() => setIsVideoOpen(true)}
+                >
+                  <div className="relative rounded-lg overflow-hidden">
+                    <Image
+                      src="/video-girl.png"
+                      alt="Imagen del post"
+                      layout="responsive"
+                      width={4}
+                      height={3}
+                    />
+
+                    <div className="absolute mt-18 inset-0 flex items-center justify-center">
+                      <div className="w-20 h-20 bg-white/60 rounded-full flex items-center justify-center group-hover:scale-120  group-hover:bg-white transition">
+                        <Play className="w-10 h-10 text-[#6D58BB] ml-1" />
+                      </div>
                     </div>
                   </div>
-                </div>
-                {/* Small preview videos in background */}
-                <div className="absolute -bottom-6 -left-6 w-32 h-24 rounded-lg overflow-hidden shadow-lg opacity-80">
-                  <img
-                    src="/business-person-on-video.jpg"
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="absolute -top-6 -right-6 w-32 h-24 rounded-lg overflow-hidden shadow-lg opacity-80">
-                  <img
-                    src="/team-meeting-video.jpg"
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
                 </div>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Background decorative elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-fuchsia-500/20 rounded-full blur-3xl"></div>
-      </section>
+        </section>
+      </div>
 
       {/* How it Works Section */}
       <section
         id="how-it-works"
-        className="py-20 px-6 bg-gradient-to-b from-blue-50 to-white"
+        className="py-20 px-6"
       >
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-[40%_60%] gap-12 items-start">
@@ -290,16 +282,16 @@ export function VideoLandingPage() {
           </AnimatedSection>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
             <AnimatedSection delay={100}>
               <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition group">
-              <h2 className="text-4xl font-bold mb-4">
-              See AGI-Powered Videos in Action
-            </h2>
-            <p className="text-xl text-muted-foreground mb-12">
-              Real companies are using IntelligentVideos to transformionaries
-              training with DigiHuman Avatars – without the spend.
-            </p>
+                <h2 className="text-4xl font-bold mb-4">
+                  See AGI-Powered Videos in Action
+                </h2>
+                <p className="text-xl text-muted-foreground mb-12">
+                  Real companies are using IntelligentVideos to
+                  transformionaries training with DigiHuman Avatars – without
+                  the spend.
+                </p>
               </Card>
             </AnimatedSection>
 
@@ -416,7 +408,7 @@ export function VideoLandingPage() {
       {/* Use Cases Grid */}
       <section
         id="cases"
-        className="py-20 px-6 bg-gradient-to-b from-blue-50 to-purple-50"
+        className="py-20 px-6"
       >
         <div className="container mx-auto">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -543,7 +535,7 @@ export function VideoLandingPage() {
       {/* Pricing Section */}
       <section
         id="pricing"
-        className="py-20 px-6 bg-gradient-to-br from-purple-900 via-purple-800 to-fuchsia-900 text-white"
+        className={`${styles.priceContainer} rounded-[20px] py-20 px-6 text-white`}
       >
         <div className="container mx-auto">
           <AnimatedSection className="text-center mb-12">
@@ -743,14 +735,18 @@ export function VideoLandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-12 px-6">
+      <footer className="bg-[#0B0F3A] mt-4 rounded-[20px] text-gray-400 py-12 px-6">
         <div className="container mx-auto">
           <AnimatedSection>
             <div className="grid md:grid-cols-2 gap-12 mb-8">
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-purple-600 rounded"></div>
-                  <span className="text-xl font-bold">IntelligentVideos</span>
+                <Image
+                src="/logofooter.svg"
+                alt="Logo"
+                width={300}
+                height={100}
+              />
                 </div>
                 <p className="text-purple-300 text-sm mb-6">
                   Learn more about it all. AGI-powered video platform. Use GPT's

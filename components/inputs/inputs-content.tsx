@@ -359,83 +359,132 @@ export function InputsContent() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-gray-900 text-center">Choose Your Output Format</h2>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
             {/* Video Length */}
             <div>
-              <Label className="text-base font-semibold mb-3 block">Video Length</Label>
-              <div className="grid grid-cols-6 gap-2 mb-2">
+              <Label className="text-2xl font-semibold mb-4 block text-gray-800">Video Length</Label>
+              <div className="grid grid-cols-3 gap-2 mb-3">
                 {videoLengths.map((length) => (
                   <Button
                     key={length}
                     variant={videoLength === length ? "default" : "outline"}
                     onClick={() => setVideoLength(length)}
-                    className="h-10"
+                    className={`h-12 rounded-full ${
+                      videoLength === length
+                        ? "bg-gray-500 text-white hover:bg-gray-600"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    }`}
                   >
                     {length}
                   </Button>
                 ))}
               </div>
-              <p className="text-xs text-gray-600">30s and 1m are 4 credits, each additional minute is 3 credits</p>
+              <p className="text-sm text-gray-600 italic mt-4">
+                30s and 1m are 4 credits, each additional minute is 3 credits
+              </p>
+            </div>
+
+            {/* Position of Sticky Video */}
+            <div>
+              <Label className="text-2xl font-semibold mb-4 block text-gray-800">Position of Sticky Video</Label>
+
+              {/* Visual Position Selector */}
+              <div className="flex gap-3 mb-6">
+                <button
+                  onClick={() => setVideoPosition("left")}
+                  className={`flex-1 h-32 bg-gray-200 rounded-lg relative transition-all ${
+                    videoPosition === "left" ? "ring-4 ring-blue-500" : ""
+                  }`}
+                >
+                  <div className="absolute bottom-4 left-4 w-16 h-12 bg-gray-500 rounded"></div>
+                </button>
+                <button
+                  onClick={() => setVideoPosition("right")}
+                  className={`flex-1 h-32 bg-gray-200 rounded-lg relative transition-all ${
+                    videoPosition === "right" ? "ring-4 ring-blue-500" : ""
+                  }`}
+                >
+                  <div className="absolute bottom-4 right-4 w-16 h-12 bg-gray-500 rounded"></div>
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <Label className="text-lg font-semibold mb-3 block text-gray-700">Size of video</Label>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setVideoSize("compact")}
+                    className={`w-full rounded-full h-12 ${
+                      videoSize === "compact"
+                        ? "bg-gray-400 text-white hover:bg-gray-500"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    }`}
+                  >
+                    Compact 280×158px
+                  </Button>
+                  <p className="text-xs text-gray-400 text-center">Minimal footprint</p>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setVideoSize("standard")}
+                    className={`w-full rounded-full h-12 ${
+                      videoSize === "standard"
+                        ? "bg-gray-800 text-white hover:bg-gray-900"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    }`}
+                  >
+                    Standard 400×225px -
+                  </Button>
+                  <p className="text-xs text-gray-400 text-center">
+                    <span className="text-yellow-500">⭐</span> "Recommended"{" "}
+                    <span className="text-yellow-500">⭐</span> (default)
+                  </p>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setVideoSize("large")}
+                    className={`w-full rounded-full h-12 ${
+                      videoSize === "large"
+                        ? "bg-gray-400 text-white hover:bg-gray-500"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    }`}
+                  >
+                    Large 600×350px
+                  </Button>
+                  <p className="text-xs text-gray-400 text-center">Maximize visibility</p>
+                </div>
+              </div>
             </div>
 
             {/* Language */}
             <div>
-              <Label className="text-base font-semibold mb-3 block">Language</Label>
-              <div className="space-y-2">
+              <Label className="text-2xl font-semibold mb-4 block text-gray-800">Language</Label>
+              <div className="flex flex-wrap gap-2">
                 {languages.map((lang) => (
                   <Button
                     key={lang.code}
-                    variant={language === lang.code ? "default" : "outline"}
+                    variant="outline"
                     onClick={() => setLanguage(lang.code)}
-                    className="w-full justify-start"
+                    className={`rounded-full h-12 px-6 ${
+                      language === lang.code
+                        ? "bg-gray-500 text-white hover:bg-gray-600"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    }`}
                   >
                     {lang.label}
                   </Button>
                 ))}
-                <Button variant="outline" className="w-full justify-start text-blue-600 bg-transparent">
+                <Button
+                  variant="outline"
+                  className="rounded-full h-12 px-6 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                >
                   More languages
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <div>
-              <Label className="text-base font-semibold mb-3 block">Position of Sticky Video</Label>
-              <div className="space-y-2">
-                <Button
-                  variant={videoPosition === "standard" ? "default" : "outline"}
-                  onClick={() => setVideoPosition("standard")}
-                  className="w-full justify-start"
-                >
-                  Standard 400x225px - Recommended (default)
-                </Button>
-                <Button
-                  variant={videoPosition === "compact" ? "default" : "outline"}
-                  onClick={() => setVideoPosition("compact")}
-                  className="w-full justify-start"
-                >
-                  Compact 280×158px - Minimal footprint
-                </Button>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-base font-semibold mb-3 block">Size of video</Label>
-              <div className="space-y-2">
-                <Button
-                  variant={videoSize === "standard" ? "default" : "outline"}
-                  onClick={() => setVideoSize("standard")}
-                  className="w-full justify-start"
-                >
-                  Standard 400x225px - Recommended (default)
-                </Button>
-                <Button
-                  variant={videoSize === "compact" ? "default" : "outline"}
-                  onClick={() => setVideoSize("compact")}
-                  className="w-full justify-start"
-                >
-                  Compact 280×158px - Minimal footprint
                 </Button>
               </div>
             </div>
