@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 interface VideoPopupProps {
   isOpen: boolean
   onClose: () => void
+  videoUrl: string
 }
 
-export function VideoPopup({ isOpen, onClose }: VideoPopupProps) {
+export function VideoPopup({ isOpen, onClose, videoUrl }: VideoPopupProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
@@ -33,7 +34,6 @@ export function VideoPopup({ isOpen, onClose }: VideoPopupProps) {
         className="relative w-full max-w-4xl bg-black rounded-lg overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
         <Button
           variant="ghost"
           size="icon"
@@ -43,17 +43,15 @@ export function VideoPopup({ isOpen, onClose }: VideoPopupProps) {
           <X className="h-6 w-6" />
         </Button>
 
-        {/* Video Container */}
         <div className="relative aspect-video bg-black w-full h-full">
-  <iframe
-    src="https://iframe.mediadelivery.net/embed/346829/8bed3b2f-0f26-4008-99cd-b65f54155eea"
-    className="absolute top-0 left-0 w-full h-full"
-    frameBorder="0"
-    allowFullScreen
-  ></iframe>
-</div>
+          <iframe
+            src={videoUrl}
+            className="absolute top-0 left-0 w-full h-full"
+            frameBorder="0"
+            allowFullScreen
+          />
+        </div>
 
-        {/* Optional: Video Info */}
         <div className="p-6 bg-gradient-to-br from-purple-900 to-purple-800 text-white">
           <h3 className="text-xl font-bold mb-2">See How It Works</h3>
           <p className="text-purple-200 text-sm">
