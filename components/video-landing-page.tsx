@@ -22,6 +22,8 @@ import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
 import { Header } from "@/components/shared/header";
 import { AppFooter } from "@/components/shared/app-footer";
+
+
 function AnimatedSection({
   children,
   className = "",
@@ -47,7 +49,18 @@ function AnimatedSection({
 }
 
 export function VideoLandingPage() {
-  const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const [isVideoOpen, setIsVideoOpen] = useState(false)
+  const [videoUrl, setVideoUrl] = useState("")
+
+  const openVideo = (url: string) => {
+    setVideoUrl(url)
+    setIsVideoOpen(true)
+  }
+
+  const closeVideo = () => {
+    setIsVideoOpen(false)
+    setVideoUrl("")
+  }
 
   return (
     <div className={`${styles.homeContainer} min-w-full p-4`}>
@@ -115,7 +128,9 @@ export function VideoLandingPage() {
               <div className="relative z-10 fade-in-up animate-delay-300">
                 <div
                   className="relative cursor-pointer group"
-                  onClick={() => setIsVideoOpen(true)}
+                  onClick={() =>
+                    openVideo("https://iframe.mediadelivery.net/embed/346829/8bed3b2f-0f26-4008-99cd-b65f54155eea")
+                  }
                 >
                   <div className="relative rounded-lg overflow-hidden">
                     <Image
@@ -491,8 +506,12 @@ export function VideoLandingPage() {
                     Close more deals with AGI-powered product demos and pitch
                     videos
                   </p>
-
-                  <p className="text-[14px] leading-relaxed text-[#335DEE]">
+                 
+                  <p 
+                  onClick={() =>
+                    openVideo("https://iframe.mediadelivery.net/embed/346829/c621d188-1aa3-4546-a7f9-6c173a689bd2")
+                  }
+                  className="text-[14px] leading-relaxed text-[#335DEE]">
                     See Sales Video Example →{" "}
                   </p>
                 </CardContent>
@@ -876,7 +895,11 @@ export function VideoLandingPage() {
       {/* Footer */}
       <AppFooter />
 
-      <VideoPopup isOpen={isVideoOpen} onClose={() => setIsVideoOpen(false)} />
+      <VideoPopup
+        isOpen={isVideoOpen}
+        onClose={closeVideo}
+        videoUrl={videoUrl}
+      />
     </div>
   );
 }

@@ -37,7 +37,7 @@ import {
 } from "@/services/video/video-by-user";
 import { getAuthToken } from "@/lib/get-auth-token";
 import { getListProjects, type Project } from "@/services/get-list-projects";
-import { motion, AnimatePresence } from "framer-motion"; // Importación confirmada
+import { motion, AnimatePresence } from "framer-motion";
 
 const filters = [
   "All videos",
@@ -59,7 +59,8 @@ export default function Dashboard() {
 
   const [videos, setVideos] = useState<UserVideo[]>([]);
   const [videoCount, setVideoCount] = useState(0);
-  const [videosLoading, setVideosLoading] = useState(false);
+  // CAMBIO: Inicializamos en true para evitar el destello del empty state
+  const [videosLoading, setVideosLoading] = useState(true);
   const [videosError, setVideosError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -119,15 +120,12 @@ export default function Dashboard() {
     }
   }, [backendUser?.id, getAccessTokenSilently]);
 
-  const isLoading = auth0Loading || backendLoading;
-
   const getProjectName = (projectId: string | null): string | null => {
     if (!projectId) return null;
     const project = projects.find((p) => p.projectId === projectId);
     return project?.projectName || null;
   };
 
-  // --- LOGICA DE BUSQUEDA MEJORADA (TÍTULO + PROMPT) ---
   const filteredVideos = videos.filter((video) => {
     const title = getProjectName(video.projectId)?.toLowerCase() || "";
     const prompt = (video.prompt || "").toLowerCase();
@@ -205,7 +203,6 @@ export default function Dashboard() {
                 {filter}
               </button>
             ))}
-
             <div className="relative ml-auto w-80">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
@@ -232,7 +229,7 @@ export default function Dashboard() {
               <p className="text-red-600">{videosError}</p>
             </CardContent>
           </Card>
-        ) : videos.length === 0 ? (
+        ) : !videosLoading && videos.length === 0 ? ( // CAMBIO: Solo muestra si terminó de cargar Y no hay videos
           <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12 text-center">
             <h2 className="mb-4 text-5xl font-medium text-[#080936]">
               Create My First video
@@ -240,7 +237,7 @@ export default function Dashboard() {
             <p className="mb-4 text-[#3E4462]">
               PDFs, Word docs, and Web pages are ≈ 400 words each
             </p>
-            <Link href="/video-inputs">
+            <Link href="/inputs">
               <Button
                 size="lg"
                 className="rounded-xl bg-[#6D58BB] px-4 py-6 text-lg font-semibold text-white hover:bg-gray-900 cursor-pointer"
@@ -254,7 +251,7 @@ export default function Dashboard() {
           <>
             <AnimatePresence mode="popLayout">
               {filteredVideos.length === 0 ? (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="flex min-h-[200px] items-center justify-center text-gray-400 italic"
@@ -262,13 +259,15 @@ export default function Dashboard() {
                   No projects found matching your search.
                 </motion.div>
               ) : (
-                <motion.div 
+                <motion.div
                   layout
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
                 >
                   <AnimatePresence>
                     {filteredVideos
-                      .filter((video) => video.status.toLowerCase() !== "failed")
+                      .filter(
+                        (video) => video.status.toLowerCase() !== "failed"
+                      )
                       .map((video) => (
                         <motion.div
                           key={video.videoId}
@@ -292,7 +291,6 @@ export default function Dashboard() {
                                     <Video className="w-12 h-12 text-white" />
                                   </div>
                                 )}
-
                                 {video.status.toLowerCase() === "completed" &&
                                   video.embed && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg">
@@ -309,20 +307,27 @@ export default function Dashboard() {
                                       </Button>
                                     </div>
                                   )}
-
                                 <div className="absolute top-2 right-2">
-                                  <Badge className={getStatusBadge(video.status).color}>
+                                  <Badge
+                                    className={
+                                      getStatusBadge(video.status).color
+                                    }
+                                  >
                                     {video.status}
                                   </Badge>
                                 </div>
                               </div>
-
                               <div className="p-5 space-y-4 bg-white rounded-b-xl border-t border-gray-100">
                                 {getProjectName(video.projectId) && (
                                   <div className="flex items-center gap-2">
-                                    <h2 className="text-2xl text-[#272830] font-medium truncate">
-                                      {getProjectName(video.projectId)}
-                                    </h2>
+                                    <Link
+                                      href={`/generation/${video?.videoId}/`}
+                                      className="w-full"
+                                    >
+                                      <h2 className="text-2xl text-[#272830] font-medium truncate">
+                                        {getProjectName(video.projectId)}
+                                      </h2>
+                                    </Link>
                                   </div>
                                 )}
                                 <div className="relative">
@@ -330,9 +335,7 @@ export default function Dashboard() {
                                     "{video.prompt?.replace(/<[^>]*>?/gm, "")}"
                                   </p>
                                 </div>
-
                                 <div className="h-px bg-gray-50 w-full" />
-
                                 <div className="flex flex-col gap-3">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -345,24 +348,25 @@ export default function Dashboard() {
                                       {video.creditsCharged && (
                                         <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 rounded-md font-medium text-[10px] uppercase tracking-wider">
                                           <CreditCard className="w-3 h-3" />
-                                          <span>{video.creditsCharged} credits</span>
+                                          <span>
+                                            {video.creditsCharged} credits
+                                          </span>
                                         </div>
                                       )}
                                     </div>
                                     <span className="text-[12px] font-light text-gray-400">
-                                      {new Date(video.createdAt).toLocaleDateString(
-                                        "es-ES",
-                                        {
-                                          day: "2-digit",
-                                          month: "short",
-                                          year: "numeric",
-                                        }
-                                      )}
+                                      {new Date(
+                                        video.createdAt
+                                      ).toLocaleDateString("es-ES", {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric",
+                                      })}
                                     </span>
                                   </div>
-
                                   <div className="flex items-center justify-between border-t border-gray-50 pt-3">
-                                    {video.status.toLowerCase() === "completed" && (
+                                    {video.status.toLowerCase() ===
+                                      "completed" && (
                                       <Link
                                         href={`/generation/${video?.videoId}/`}
                                         className="w-full"
@@ -371,7 +375,7 @@ export default function Dashboard() {
                                           variant="ghost"
                                           className="w-full h-10 px-4 flex items-center justify-center gap-2 bg-[#E2F2FE] text-[#080936] hover:bg-[#6D58BB] hover:text-white text-[13px] font-normal rounded-[20px] transition-all border-none cursor-pointer"
                                         >
-                                          View Project
+                                          View Project{" "}
                                           <ArrowRight className="w-3.5 h-3.5" />
                                         </Button>
                                       </Link>
@@ -390,7 +394,8 @@ export default function Dashboard() {
           </>
         )}
 
-        {videos.length > 0 && (
+        {/* Create More section */}
+        {!videosLoading && videos.length > 0 && (
           <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12 text-center bg-white rounded-[20px] mt-16">
             <h2 className="mb-4 text-5xl font-medium text-[#080936]">
               Create More Videos
@@ -398,19 +403,19 @@ export default function Dashboard() {
             <p className="mb-4 text-[#3E4462]">
               PDFs, Word docs, and Web pages are ≈ 400 words each
             </p>
-            <Link href="/video-inputs">
+            <Link href="/inputs">
               <Button
                 size="lg"
                 className="rounded-xl bg-[#6D58BB] px-4 py-6 text-lg font-semibold text-white hover:bg-gray-900 cursor-pointer"
               >
-                Go to create
-                <ArrowRight className="mr-2 h-5 w-5" />
+                Go to create <ArrowRight className="mr-2 h-5 w-5" />
               </Button>
             </Link>
           </CardContent>
         )}
       </main>
 
+      {/* DIALOG ORIGINAL (SIN TOCAR) */}
       <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
         <DialogContent className="max-w-6xl p-0 overflow-hidden &>button]:hidden">
           <Button
@@ -419,12 +424,9 @@ export default function Dashboard() {
           >
             Close
           </Button>
-
-          {/* Usamos sr-only para ocultar el título visualmente pero mantener la accesibilidad */}
           <DialogHeader className="sr-only">
             <DialogTitle>Video Player</DialogTitle>
           </DialogHeader>
-
           {selectedVideo?.embed ? (
             <div className="aspect-video w-full bg-black">
               <div
@@ -433,8 +435,8 @@ export default function Dashboard() {
               />
             </div>
           ) : (
-            <div className="aspect-video flex items-center justify-center bg-gray-200 w-full">
-              <p className="text-gray-500">No video available</p>
+            <div className="aspect-video flex items-center justify-center bg-gray-200 w-full text-gray-500">
+              No video available
             </div>
           )}
         </DialogContent>
