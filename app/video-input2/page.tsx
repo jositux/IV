@@ -227,7 +227,7 @@ export default function VideoCreatorPage() {
       return foldersResponse.data[0].folderId;
     }
 
-    const newFolder = await createFolder(token, { name: "Main" });
+    const newFolder = await createFolder(token, { folderName: "Main" });
     if (newFolder && (newFolder as any).folderId) {
       return (newFolder as any).folderId;
     }

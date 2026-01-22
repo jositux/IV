@@ -36,7 +36,7 @@ import { getListFolders } from "@/services/get-list-folders";
 import { getListProjects } from "@/services/get-list-projects";
 import { createFolder } from "@/services/create-folder";
 import { createProject } from "@/services/create-project";
-import { getOrCreateMainFolder } from "@/services/get-or-create-main-folder"; // Import getOrCreateMainFolder
+//import { getOrCreateMainFolder } from "@/services/get-or-create-main-folder"; // Import getOrCreateMainFolder
 
 const videoLengths = [
   "30s",
@@ -227,7 +227,7 @@ export default function VideoCreatorPage() {
       return foldersResponse.data[0].folderId;
     }
 
-    const newFolder = await createFolder(token, { name: "Main" });
+    const newFolder = await createFolder(token, { folderName: "Main" });
     if (newFolder && (newFolder as any).folderId) {
       return (newFolder as any).folderId;
     }
