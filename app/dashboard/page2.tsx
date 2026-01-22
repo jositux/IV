@@ -10,7 +10,6 @@ import {
   Play,
   Clock,
   CreditCard,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +36,13 @@ import {
 } from "@/services/video/video-by-user";
 import { getAuthToken } from "@/lib/get-auth-token";
 import { getListProjects, type Project } from "@/services/get-list-projects";
-import { motion, AnimatePresence } from "framer-motion"; // Importación confirmada
+
+const stats = [
+  { label: "Total videos", value: 0, icon: Video },
+  { label: "Total deliverables", value: 0, icon: FileCheck },
+  { label: "long form articles", value: 0, icon: FileText },
+  { label: "Landing pages", value: 0, icon: Monitor },
+];
 
 const filters = [
   "All videos",
@@ -127,14 +132,6 @@ export default function Dashboard() {
     return project?.projectName || null;
   };
 
-  // --- LOGICA DE BUSQUEDA MEJORADA (TÍTULO + PROMPT) ---
-  const filteredVideos = videos.filter((video) => {
-    const title = getProjectName(video.projectId)?.toLowerCase() || "";
-    const prompt = (video.prompt || "").toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return title.includes(query) || prompt.includes(query);
-  });
-
   const getStatusBadge = (status: string) => {
     const variants: Record<
       string,
@@ -170,12 +167,76 @@ export default function Dashboard() {
       <main className="mx-auto py-16">
         <h1 className="mb-8 text-5xl font-medium text-[#080936]">Dashboard</h1>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 hidden">
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <h3 className="font-bold text-lg">Auth0 Profile</h3>
+              <div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  Email
+                </div>
+                <div className="text-base">{auth0User?.email}</div>
+              </div>
+              {auth0User?.picture && (
+                <img
+                  src={auth0User.picture || "/placeholder.svg"}
+                  alt="Profile"
+                  className="w-12 h-12 rounded-full"
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <h3 className="font-bold text-lg">Account Details</h3>
+              {isLoading || detailsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+                  Cargando información de cuenta...
+                </div>
+              ) : backendError ? (
+                <div className="text-sm text-red-500 bg-red-50 p-3 rounded">
+                  Error: {backendError}
+                </div>
+              ) : fullUserData ? (
+                <>
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">
+                      User ID
+                    </div>
+                    <div className="text-xs font-mono bg-gray-100 p-1 rounded">
+                      {fullUserData.id}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">
+                      Available Credits
+                    </div>
+                    <div className="text-2xl font-bold text-pink-600">
+                      {fullUserData.currentCreditBalance.toLocaleString()}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">
+                      Subscription
+                    </div>
+                    <div className="text-base capitalize">
+                      {fullUserData.subscriptionType || "Free Plan"}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No details found.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="mb-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {updatedStats.map((stat) => (
-            <Card
-              key={stat.label}
-              className="border-1 bg-white shadow-none border-gray-200"
-            >
+            <Card key={stat.label} className="border-1 bg-white shadow-none bg-white border-gray-200">
               <CardContent className="px-6">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm text-gray-600">{stat.label}</p>
@@ -234,162 +295,126 @@ export default function Dashboard() {
           </Card>
         ) : videos.length === 0 ? (
           <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12 text-center">
-            <h2 className="mb-4 text-5xl font-medium text-[#080936]">
-              Create My First video
-            </h2>
-            <p className="mb-4 text-[#3E4462]">
-              PDFs, Word docs, and Web pages are ≈ 400 words each
-            </p>
-            <Link href="/video-inputs">
+              <h2 className="mb-4 text-5xl font-medium text-[#080936]">
+                Create My First video
+              </h2>
+              <p  className="mb-4 text-[#3E4462]">PDFs, Word docs, and Web pages are ≈ 400 words each</p>
+              <Link href="/video-inputs">
+                <Button
+                  size="lg"
+                  className="rounded-xl bg-[#6D58BB] px-4 py-6 text-lg font-semibold text-white hover:bg-gray-900 cursor-pointer"
+                >
+                   Start Creating Now
+                  <ArrowRight className="mr-2 h-5 w-5" />
+                 
+                </Button>
+              </Link>
+              
+            </CardContent>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {videos
+  .filter((video) => video.status.toLowerCase() !== "failed") // Filtra los fallidos
+  .map((video) => (
+    <Card
+      key={video.videoId}
+      className="border-1 bg-white p-0 shadow-none border-gray-200 group"
+    >
+      <CardContent className="p-0">
+        <div className="relative aspect-video">
+          {video.thumbnailURL ? (
+            <img
+              src={`/assets/avatars/${video.replicaId}.jpg`}
+              alt="Video thumbnail"
+              className="w-full h-full object-cover rounded-t-lg"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 rounded-t-lg flex items-center justify-center">
+              <Video className="w-12 h-12 text-white" />
+            </div>
+          )}
+
+          {/* Botón Play: solo si está completado y tiene embed */}
+          {video.status.toLowerCase() === "completed" && video.embed && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg">
               <Button
                 size="lg"
-                className="rounded-xl bg-[#6D58BB] px-4 py-6 text-lg font-semibold text-white hover:bg-gray-900 cursor-pointer"
+                className="rounded-full bg-white/90 hover:bg-white text-gray-900 w-16 h-16 p-0"
+                onClick={() => handlePlayVideo(video)}
               >
-                Start Creating Now
-                <ArrowRight className="mr-2 h-5 w-5" />
+                <Play className="w-8 h-8 ml-1" fill="currentColor" />
               </Button>
-            </Link>
-          </CardContent>
-        ) : (
-          <>
-            <AnimatePresence mode="popLayout">
-              {filteredVideos.length === 0 ? (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex min-h-[200px] items-center justify-center text-gray-400 italic"
-                >
-                  No projects found matching your search.
-                </motion.div>
-              ) : (
-                <motion.div 
-                  layout
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                >
-                  <AnimatePresence>
-                    {filteredVideos
-                      .filter((video) => video.status.toLowerCase() !== "failed")
-                      .map((video) => (
-                        <motion.div
-                          key={video.videoId}
-                          layout
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full">
-                            <CardContent className="p-0">
-                              <div className="relative aspect-video">
-                                {video.thumbnailURL ? (
-                                  <img
-                                    src={`/assets/avatars/${video.replicaId}.jpg`}
-                                    alt="Video thumbnail"
-                                    className="w-full h-full object-cover rounded-t-lg"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 rounded-t-lg flex items-center justify-center">
-                                    <Video className="w-12 h-12 text-white" />
-                                  </div>
-                                )}
+            </div>
+          )}
 
-                                {video.status.toLowerCase() === "completed" &&
-                                  video.embed && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg">
-                                      <Button
-                                        size="lg"
-                                        className="rounded-full bg-white/90 hover:bg-white text-gray-900 w-16 h-16 p-0 cursor-pointer"
-                                        onClick={() => handlePlayVideo(video)}
-                                      >
-                                        <Play
-                                          className="w-8 h-8 ml-1"
-                                          fill="#6D58BB"
-                                          color="#6D58BB"
-                                        />
-                                      </Button>
-                                    </div>
-                                  )}
+          <div className="absolute top-2 right-2">
+            <Badge className={getStatusBadge(video.status).color}>
+              {video.status}
+            </Badge>
+          </div>
+        </div>
 
-                                <div className="absolute top-2 right-2">
-                                  <Badge className={getStatusBadge(video.status).color}>
-                                    {video.status}
-                                  </Badge>
-                                </div>
-                              </div>
+        <div className="p-5 space-y-4 bg-white rounded-b-xl border-t border-gray-100">
+          {getProjectName(video.projectId) && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+                {getProjectName(video.projectId)}
+              </Badge>
+            </div>
+          )}
+          <div className="relative">
+            <p className="text-sm leading-relaxed text-gray-600 line-clamp-2 min-h-[40px] italic">
+              "{video.prompt?.replace(/<[^>]*>?/gm, "")}"
+            </p>
+          </div>
 
-                              <div className="p-5 space-y-4 bg-white rounded-b-xl border-t border-gray-100">
-                                {getProjectName(video.projectId) && (
-                                  <div className="flex items-center gap-2">
-                                    <h2 className="text-2xl text-[#272830] font-medium truncate">
-                                      {getProjectName(video.projectId)}
-                                    </h2>
-                                  </div>
-                                )}
-                                <div className="relative">
-                                  <p className="text-sm leading-relaxed text-[#272830] line-clamp-1 min-h-[40px] italic">
-                                    "{video.prompt?.replace(/<[^>]*>?/gm, "")}"
-                                  </p>
-                                </div>
+          <div className="h-px bg-gray-50 w-full" />
 
-                                <div className="h-px bg-gray-50 w-full" />
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {video.duration && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium text-[10px] uppercase tracking-wider">
+                    <Clock className="w-3 h-3" />
+                    <span>{video.duration} sec</span>
+                  </div>
+                )}
+                {video.creditsCharged && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 rounded-md font-medium text-[10px] uppercase tracking-wider">
+                    <CreditCard className="w-3 h-3" />
+                    <span>{video.creditsCharged} credits</span>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                                <div className="flex flex-col gap-3">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      {video.duration && (
-                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium text-[10px] uppercase tracking-wider">
-                                          <Clock className="w-3 h-3" />
-                                          <span>{video.duration} sec</span>
-                                        </div>
-                                      )}
-                                      {video.creditsCharged && (
-                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 rounded-md font-medium text-[10px] uppercase tracking-wider">
-                                          <CreditCard className="w-3 h-3" />
-                                          <span>{video.creditsCharged} credits</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <span className="text-[12px] font-light text-gray-400">
-                                      {new Date(video.createdAt).toLocaleDateString(
-                                        "es-ES",
-                                        {
-                                          day: "2-digit",
-                                          month: "short",
-                                          year: "numeric",
-                                        }
-                                      )}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-center justify-between border-t border-gray-50 pt-3">
-                                    {video.status.toLowerCase() === "completed" && (
-                                      <Link
-                                        href={`/generation/${video?.videoId}/`}
-                                        className="w-full"
-                                      >
-                                        <Button
-                                          variant="ghost"
-                                          className="w-full h-10 px-4 flex items-center justify-center gap-2 bg-[#E2F2FE] text-[#080936] hover:bg-[#6D58BB] hover:text-white text-[13px] font-normal rounded-[20px] transition-all border-none cursor-pointer"
-                                        >
-                                          View Project
-                                          <ArrowRight className="w-3.5 h-3.5" />
-                                        </Button>
-                                      </Link>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      ))}
-                  </AnimatePresence>
-                </motion.div>
+            <div className="flex items-center justify-between border-t border-gray-50 pt-3">
+              <span className="text-[12px] font-semibold text-gray-400">
+                {new Date(video.createdAt).toLocaleDateString("es-ES", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+              {video.status.toLowerCase() === "completed" && (
+                <Link href={`/generation/${video?.videoId}/`}>
+                  <Button
+                    variant="ghost"
+                    className="h-7 px-3 flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] font-medium rounded-full transition-all"
+                  >
+                    View Project
+                    <Play className="w-2.5 h-2.5 fill-current" />
+                  </Button>
+                </Link>
               )}
-            </AnimatePresence>
-          </>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  ))}
+          </div>
         )}
-
         {videos.length > 0 && (
           <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12 text-center bg-white rounded-[20px] mt-16">
             <h2 className="mb-4 text-5xl font-medium text-[#080936]">

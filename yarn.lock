@@ -1901,30 +1901,6 @@ auth0-js@^9.29.0:
     url-join "^4.0.1"
     winchan "^0.2.2"
 
-auth0-lock@auth0/lock:
-  version "14.2.2"
-  resolved "https://codeload.github.com/auth0/lock/tar.gz/99d241a3b490dd32d06dd5c16bf0a9bbd13d6188"
-  dependencies:
-    auth0-js "^9.29.0"
-    auth0-password-policies "^1.0.2"
-    blueimp-md5 "^2.19.0"
-    classnames "^2.3.2"
-    dompurify "^3.2.5"
-    events "^3.3.0"
-    immutable "^3.7.6"
-    jsonp "^0.2.1"
-    password-sheriff "^1.1.1"
-    prop-types "^15.8.0"
-    qs "^6.10.3"
-    react "^18.2.0"
-    react-dom "^18.2.0"
-    react-transition-group "^4.4.5"
-    trim "^1.0.1"
-    url-join "^1.1.0"
-    validator "^13.15.22"
-  optionalDependencies:
-    fsevents "^2.3.3"
-
 "auth0-lock@https://github.com/auth0/lock.git":
   version "14.2.2"
   resolved "https://github.com/auth0/lock.git#00124dabb2ec888bcfe66db49b7fd15fce694483"
@@ -2851,6 +2827,15 @@ fraction.js@^5.3.4:
   resolved "https://registry.yarnpkg.com/fraction.js/-/fraction.js-5.3.4.tgz#8c0fcc6a9908262df4ed197427bdeef563e0699a"
   integrity sha512-1X1NTtiJphryn/uLQz3whtY6jK3fTqoE3ohKs0tT+Ujr1W59oopxmoEh7Lu5p6vBaPbgoM0bzveAW4Qi5RyWDQ==
 
+framer-motion@^12.28.2:
+  version "12.28.2"
+  resolved "https://registry.yarnpkg.com/framer-motion/-/framer-motion-12.28.2.tgz#277ce1afcdba0d69d389b96df05c2a8421f8a422"
+  integrity sha512-LNzKJo1VWz3RqNSeBzMbDIdLLpUw7hp/PpsvOpDlLqT1KlAAGsoSZ3OxNAKmS89AUeRv0rBbYgFLAWzO33xzDw==
+  dependencies:
+    motion-dom "^12.28.2"
+    motion-utils "^12.27.2"
+    tslib "^2.4.0"
+
 fresh@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/fresh/-/fresh-2.0.0.tgz#8dd7df6a1b3a1b3a5cf186c05a5dd267622635a4"
@@ -3539,6 +3524,18 @@ minimist@^1.2.5, minimist@^1.2.6:
   version "1.2.8"
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.8.tgz#c1a464e7693302e082a075cee0c057741ac4772c"
   integrity sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==
+
+motion-dom@^12.28.2:
+  version "12.28.2"
+  resolved "https://registry.yarnpkg.com/motion-dom/-/motion-dom-12.28.2.tgz#cb2cd7a7700775c93acbdfc7bdfbdf223973ebf7"
+  integrity sha512-Lu+N4CSyc0JZlssX1OvdAgHanP8SuXCa4ZU/dEjGbtwZOjC2BH5e7MfDDi/Kgnzsu+Oyw4QYKhgFici4LlLiyg==
+  dependencies:
+    motion-utils "^12.27.2"
+
+motion-utils@^12.27.2:
+  version "12.27.2"
+  resolved "https://registry.yarnpkg.com/motion-utils/-/motion-utils-12.27.2.tgz#cd3038236ae2dc3d643bdb272ed831fd6d8ab616"
+  integrity sha512-B55gcoL85Mcdt2IEStY5EEAsrMSVE2sI14xQ/uAdPL+mfQxhKKFaEag9JmfxedJOR4vZpBGoPeC/Gm13I/4g5Q==
 
 ms@2.0.0:
   version "2.0.0"
