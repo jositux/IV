@@ -1,5 +1,5 @@
 export interface CreateFolderRequest {
-  name: string
+  folderName: string
 }
 
 export interface CreateFolderResponse {

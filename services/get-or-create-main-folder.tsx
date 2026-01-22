@@ -9,7 +9,7 @@ export async function getOrCreateMainFolder(token: string): Promise<string> {
   }
 
   // No folders exist, create "Main"
-  const newFolder = await createFolder(token, { name: "Main" })
+  const newFolder = await createFolder(token, { folderName: "Main" })
   if (newFolder && (newFolder as any).folderId) {
     return (newFolder as any).folderId
   }
