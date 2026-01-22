@@ -27,3 +27,27 @@
   background-size: cover;
   background-position: center;
 }
+
+/* Este es el contenedor de la imagen */
+.imageContainer {
+  position: relative;
+  height: 15rem; /* h-60 */
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: #f3f4f6;
+}
+
+/* Estado base de la imagen */
+.zoomImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Forzamos los valores para que nada los sobreescriba */
+  transition: transform 1000ms ease-in-out !important;
+  transform: scale(1);
+}
+
+/* Usamos la clase de la Card para disparar el zoom */
+.customCard:hover .zoomImage {
+  transform: scale(1.1) !important;
+}

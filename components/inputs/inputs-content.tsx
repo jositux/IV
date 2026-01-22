@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Upload, Plus, X, FileText, Globe, Sparkles, CheckCircle2, Trash2 } from "lucide-react"
 import { AppHeader } from "@/components/shared/app-header"
 
@@ -65,14 +64,18 @@ export function InputsContent() {
   const [files, setFiles] = useState<File[]>([])
   const [urls, setUrls] = useState<string[]>(["www.espn.com", "www.britannica.com", "www.reddit.co/hubermann"])
   const [newUrl, setNewUrl] = useState("")
-  const [selectedAvatar, setSelectedAvatar] = useState("Gloria")
+  const [selectedAvatar, setSelectedAvatar] = useState("Gloria") // First avatar selected by default
   const [videoLength, setVideoLength] = useState("2m")
   const [language, setLanguage] = useState("en")
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
-  const [videoPosition, setVideoPosition] = useState("standard")
+  const [videoPosition, setVideoPosition] = useState("left") // First position by default
   const [videoSize, setVideoSize] = useState("standard")
   const [keywords, setKeywords] = useState("")
   const [targetAudience, setTargetAudience] = useState("")
+  const [primaryFocus, setPrimaryFocus] = useState<"files" | "urls">("files") // Radio button state, files by default
+  const [topic, setTopic] = useState("")
+  const [keywordPhrases, setKeywordPhrases] = useState("")
+  const [audience, setAudience] = useState("")
 
   const maxWords = 20000
   const wordsUsed = 2621
@@ -120,98 +123,94 @@ export function InputsContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
-      {/* Shared Header */}
       <AppHeader />
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Hero Section */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Simple Inputs, Extraordinary Results</h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Simple Inputs, Extraordinary Results</h1>
+          <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto">
             Our AGI-powered platform needs minimal input to generate results that are more human than human
           </p>
         </div>
 
-        {/* Section 1: Text Input */}
-        <Card className="p-8 mb-8">
+        <Card className="p-4 sm:p-8 mb-8">
           <div className="flex items-start gap-4 mb-6">
             <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
               1
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
                 Choose any one input method below or combine multiple to better align with your specific vision.
               </h2>
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-base font-semibold">Enter Topic or Text</Label>
-                <span className="text-sm text-gray-600">
-                  Maximum Words allowed <span className="font-semibold">{maxWords.toLocaleString()}</span>
-                </span>
-              </div>
+              <Label className="text-base font-semibold mb-2 block">Enter Topic or Text</Label>
               <Textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Enter Topic, Upload PDFs, Word Docs, Images, Enter Web URLs"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="Enter your topic or text here..."
                 className="min-h-[120px] resize-none"
               />
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-sm text-gray-600">
-                  Words used <span className="font-semibold">{wordsUsed.toLocaleString()}</span>
-                </span>
-                <span className="text-sm text-gray-600">
-                  Words remaining <span className="font-semibold">{wordsRemaining.toLocaleString()}</span>
-                </span>
-              </div>
             </div>
-
             <div>
               <Label className="text-base font-semibold mb-2 block">Keywords / Keyword Phrases</Label>
-              <Input
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
+              <Textarea
+                value={keywordPhrases}
+                onChange={(e) => setKeywordPhrases(e.target.value)}
                 placeholder="Coffee, Health, Health benefits of coffee"
+                className="min-h-[120px] resize-none"
               />
             </div>
-
             <div>
               <Label className="text-base font-semibold mb-2 block">Target Audience (Optional)</Label>
-              <Input
-                value={targetAudience}
-                onChange={(e) => setTargetAudience(e.target.value)}
+              <Textarea
+                value={audience}
+                onChange={(e) => setAudience(e.target.value)}
                 placeholder="Marketing specialists / Business executives"
+                className="min-h-[120px] resize-none"
               />
             </div>
           </div>
+
+          <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
+            <span>
+              Words used <span className="font-semibold">{wordsUsed.toLocaleString()}</span>
+            </span>
+            <span>
+              Maximum Words allowed <span className="font-semibold">{maxWords.toLocaleString()}</span>
+            </span>
+            <span>
+              Words remaining <span className="font-semibold">{wordsRemaining.toLocaleString()}</span>
+            </span>
+          </div>
         </Card>
 
-        {/* Section 2: Upload Documents */}
-        <Card className="p-8 mb-8">
+        <Card className="p-4 sm:p-8 mb-8">
           <div className="flex items-start gap-4 mb-6">
             <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
               2
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Upload Documents and Web Urls</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Upload Documents and Web Urls</h2>
               <p className="text-gray-600">Up to 20,000 words</p>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* File Upload */}
             <div>
               <Label className="text-base font-semibold mb-3 block">PDF, PowerPoint, JPEG, XLSX, Word</Label>
               <div
                 onClick={triggerFileInput}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4 hover:border-blue-400 transition-colors cursor-pointer"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center mb-4 hover:border-blue-400 transition-colors cursor-pointer"
               >
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600 mb-1">Drag & drop files here or click to browse</p>
-                <p className="text-sm text-gray-500">Supports: PDF, PPT, JPEG, XLSX, Word</p>
+                <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-sm sm:text-base text-gray-600 mb-1">Drag & drop files here or click to browse</p>
+                <p className="text-xs sm:text-sm text-gray-500">Supports: PDF, PPT, JPEG, XLSX, Word</p>
                 <input
                   id="file-upload"
                   type="file"
@@ -239,7 +238,14 @@ export function InputsContent() {
               )}
 
               <div className="flex items-start gap-2">
-                <Checkbox id="files-primary" />
+                <input
+                  type="radio"
+                  id="files-primary"
+                  name="primary-focus"
+                  checked={primaryFocus === "files"}
+                  onChange={() => setPrimaryFocus("files")}
+                  className="mt-1 cursor-pointer"
+                />
                 <div>
                   <label htmlFor="files-primary" className="text-sm font-medium cursor-pointer">
                     Set these files as Primary Focus
@@ -290,10 +296,17 @@ export function InputsContent() {
               )}
 
               <div className="flex items-start gap-2">
-                <Checkbox id="urls-primary" />
+                <input
+                  type="radio"
+                  id="urls-primary"
+                  name="primary-focus"
+                  checked={primaryFocus === "urls"}
+                  onChange={() => setPrimaryFocus("urls")}
+                  className="mt-1 cursor-pointer"
+                />
                 <div>
                   <label htmlFor="urls-primary" className="text-sm font-medium cursor-pointer">
-                    Set these files as Primary Focus
+                    Set these URLs as Primary Focus
                   </label>
                   <p className="text-xs text-gray-600 mt-1">
                     Example: If you want to add video to a web page, you may want to Select Primary Focus for Web URLs
@@ -305,41 +318,37 @@ export function InputsContent() {
           </div>
         </Card>
 
-        {/* Section 3: Choose Avatar */}
-        <Card className="p-8 mb-8">
+        <Card className="p-4 sm:p-8 mb-8">
           <div className="flex items-start gap-4 mb-6">
             <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
               3
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Choose Your Studio-Grade Avatar</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Choose Your Studio-Grade Avatar</h2>
               <p className="text-gray-600 mb-4">
                 Pick the digital avatar who will deliver your content. Each has different voice, tone, and language.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 mb-6">
             {avatars.map((avatar) => (
-              <button
-                key={avatar.name}
-                onClick={() => setSelectedAvatar(avatar.name)}
-                className={`cursor-pointer text-center transition-all ${
-                  selectedAvatar === avatar.name
-                    ? "ring-4 ring-blue-600 rounded-lg"
-                    : "hover:ring-2 hover:ring-gray-300 rounded-lg"
-                }`}
-              >
-                <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg mb-2 flex items-center justify-center">
-                  <span className="text-4xl font-bold text-blue-600">{avatar.name[0]}</span>
-                </div>
-                <p className="text-sm font-medium text-gray-900">{avatar.name}</p>
-              </button>
+              <div key={avatar.name} className="text-center">
+                <button
+                  onClick={() => setSelectedAvatar(avatar.name)}
+                  className={`cursor-pointer w-full aspect-square bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center transition-all ${
+                    selectedAvatar === avatar.name ? "border-6 border-indigo-500" : "hover:border-6 hover:border-indigo-100"
+                  }`}
+                >
+                  <span className="text-3xl sm:text-4xl font-bold text-blue-600">{avatar.name[0]}</span>
+                </button>
+                <p className="text-xs sm:text-sm font-medium text-gray-900 mt-2">{avatar.name}</p>
+              </div>
             ))}
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-gray-700">
+            <p className="text-xs sm:text-sm text-gray-700">
               <strong>Authentic Digital Human Technology.</strong> While typical AI avatars only animate the lower face,
               our advanced 3D rendering captures every subtle movement that creates genuine human presence with
               pixel-perfect lip synchronization and consistent identity preservation that crosses the threshold from
@@ -348,34 +357,27 @@ export function InputsContent() {
           </div>
         </Card>
 
-        {/* Section 4: Video Options */}
-        <Card className="p-8 mb-8">
+        <Card className="p-4 sm:p-8 mb-8">
           <div className="flex items-start gap-4 mb-6">
             <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
               4
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Choose Your Output Format</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Choose Your Output Format</h2>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900 text-center">Choose Your Output Format</h2>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {/* Video Length */}
             <div>
-              <Label className="text-2xl font-semibold mb-4 block text-gray-800">Video Length</Label>
+              <Label className="text-xl sm:text-2xl font-semibold mb-4 block text-gray-800">Video Length</Label>
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {videoLengths.map((length) => (
                   <Button
                     key={length}
                     variant={videoLength === length ? "default" : "outline"}
                     onClick={() => setVideoLength(length)}
-                    className={`h-12 rounded-full ${
+                    className={`h-10 sm:h-12 rounded-full text-sm sm:text-base ${
                       videoLength === length
                         ? "bg-gray-500 text-white hover:bg-gray-600"
                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -385,42 +387,43 @@ export function InputsContent() {
                   </Button>
                 ))}
               </div>
-              <p className="text-sm text-gray-600 italic mt-4">
+              <p className="text-xs sm:text-sm text-gray-600 italic mt-4">
                 30s and 1m are 4 credits, each additional minute is 3 credits
               </p>
             </div>
 
             {/* Position of Sticky Video */}
             <div>
-              <Label className="text-2xl font-semibold mb-4 block text-gray-800">Position of Sticky Video</Label>
+              <Label className="text-xl sm:text-2xl font-semibold mb-4 block text-gray-800">
+                Position of Sticky Video
+              </Label>
 
-              {/* Visual Position Selector */}
               <div className="flex gap-3 mb-6">
                 <button
                   onClick={() => setVideoPosition("left")}
-                  className={`flex-1 h-32 bg-gray-200 rounded-lg relative transition-all ${
-                    videoPosition === "left" ? "ring-4 ring-blue-500" : ""
+                  className={`flex-1 h-28 sm:h-32 bg-gray-200 rounded-lg relative curspor-pointer transition-all ${
+                    videoPosition === "left" ? "border-6 border-indigo-500" : "hover:border-4 hover:border-indigo-100"
                   }`}
                 >
-                  <div className="absolute bottom-4 left-4 w-16 h-12 bg-gray-500 rounded"></div>
+                  <div className="absolute bottom-4 left-4 w-12 sm:w-16 h-10 sm:h-12 bg-gray-500 rounded"></div>
                 </button>
                 <button
                   onClick={() => setVideoPosition("right")}
-                  className={`flex-1 h-32 bg-gray-200 rounded-lg relative transition-all ${
-                    videoPosition === "right" ? "ring-4 ring-blue-500" : ""
+                  className={`flex-1 h-28 sm:h-32 bg-gray-200 rounded-lg relative curspor-pointer transition-all ${
+                    videoPosition === "right" ? "border-6 border-indigo-500" : "hover:border-4 hover:border-indigo-100"
                   }`}
                 >
-                  <div className="absolute bottom-4 right-4 w-16 h-12 bg-gray-500 rounded"></div>
+                  <div className="absolute bottom-4 right-4 w-12 sm:w-16 h-10 sm:h-12 bg-gray-500 rounded"></div>
                 </button>
               </div>
 
               <div className="mt-4">
-                <Label className="text-lg font-semibold mb-3 block text-gray-700">Size of video</Label>
+                <Label className="text-base sm:text-lg font-semibold mb-3 block text-gray-700">Size of video</Label>
                 <div className="space-y-2">
                   <Button
                     variant="outline"
                     onClick={() => setVideoSize("compact")}
-                    className={`w-full rounded-full h-12 ${
+                    className={`w-full rounded-full h-10 sm:h-12 text-sm sm:text-base ${
                       videoSize === "compact"
                         ? "bg-gray-400 text-white hover:bg-gray-500"
                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -433,13 +436,13 @@ export function InputsContent() {
                   <Button
                     variant="outline"
                     onClick={() => setVideoSize("standard")}
-                    className={`w-full rounded-full h-12 ${
+                    className={`w-full rounded-full h-10 sm:h-12 text-sm sm:text-base ${
                       videoSize === "standard"
                         ? "bg-gray-800 text-white hover:bg-gray-900"
                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                     }`}
                   >
-                    Standard 400×225px -
+                    Standard 400×225px
                   </Button>
                   <p className="text-xs text-gray-400 text-center">
                     <span className="text-yellow-500">⭐</span> "Recommended"{" "}
@@ -449,7 +452,7 @@ export function InputsContent() {
                   <Button
                     variant="outline"
                     onClick={() => setVideoSize("large")}
-                    className={`w-full rounded-full h-12 ${
+                    className={`w-full rounded-full h-10 sm:h-12 text-sm sm:text-base ${
                       videoSize === "large"
                         ? "bg-gray-400 text-white hover:bg-gray-500"
                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -464,14 +467,14 @@ export function InputsContent() {
 
             {/* Language */}
             <div>
-              <Label className="text-2xl font-semibold mb-4 block text-gray-800">Language</Label>
+              <Label className="text-xl sm:text-2xl font-semibold mb-4 block text-gray-800">Language</Label>
               <div className="flex flex-wrap gap-2">
                 {languages.map((lang) => (
                   <Button
                     key={lang.code}
                     variant="outline"
                     onClick={() => setLanguage(lang.code)}
-                    className={`rounded-full h-12 px-6 ${
+                    className={`rounded-full h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base ${
                       language === lang.code
                         ? "bg-gray-500 text-white hover:bg-gray-600"
                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -482,9 +485,9 @@ export function InputsContent() {
                 ))}
                 <Button
                   variant="outline"
-                  className="rounded-full h-12 px-6 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  className="rounded-full h-10 sm:h-12 px-4 sm:px-6 bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm sm:text-base"
                 >
-                  More languages
+                  More languages ▾
                 </Button>
               </div>
             </div>
@@ -492,55 +495,58 @@ export function InputsContent() {
         </Card>
 
         {/* Section 5: Additional Products */}
-        <Card className="p-8 mb-8">
+        <Card className="p-4 sm:p-8 mb-8">
           <div className="flex items-start gap-4 mb-6">
             <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
               5
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
-                Select Additional Products to Maximize Your Content Creation
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                Additional Products for Maximum Impact (Optional)
               </h2>
               <p className="text-gray-600">
-                Extend your video reach with these complementary content packages. Each product uses your video content
-                to create additional marketing assets—all generated from the same inputs you have already provided.
+                Extend your reach and effectiveness with complementary deliverables optimized for multiple channels
               </p>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="space-y-4">
             {additionalProducts.map((product) => (
               <Card
                 key={product.title}
-                className={`p-6 cursor-pointer transition-all ${
-                  selectedProducts.includes(product.title) ? "ring-2 ring-blue-600 bg-blue-50" : "hover:shadow-lg"
+                className={`p-4 sm:p-6 cursor-pointer transition-all ${
+                  selectedProducts.includes(product.title)
+                    ? "border-2 border-blue-600 bg-blue-50"
+                    : "border border-gray-200 hover:border-gray-300"
                 }`}
                 onClick={() => toggleProduct(product.title)}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="font-bold text-gray-900 mb-1">{product.title}</h3>
-                    <Badge variant="secondary" className="text-blue-600 bg-blue-100">
-                      +{product.credits} Credits
-                    </Badge>
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div
+                    className={`w-5 h-5 sm:w-6 sm:h-6 rounded border-2 flex items-center justify-center flex-shrink-0 mt-1 ${
+                      selectedProducts.includes(product.title) ? "bg-blue-600 border-blue-600" : "border-gray-300"
+                    }`}
+                  >
+                    {selectedProducts.includes(product.title) && (
+                      <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                    )}
                   </div>
-                  {selectedProducts.includes(product.title) && <CheckCircle2 className="w-6 h-6 text-blue-600" />}
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900">{product.title}</h3>
+                      <Badge className="bg-blue-600 text-white flex-shrink-0">+{product.credits} credits</Badge>
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3">{product.description}</p>
+                    <div className="space-y-1">
+                      {product.features.map((feature, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <span className="text-xs sm:text-sm text-gray-700">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-
-                <p className="text-sm text-gray-600 mb-4">{product.description}</p>
-
-                <ul className="space-y-2 mb-4">
-                  {product.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                      <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Button variant="outline" className="w-full bg-transparent">
-                  Preview
-                </Button>
               </Card>
             ))}
           </div>
@@ -548,22 +554,15 @@ export function InputsContent() {
       </div>
 
       {/* Fixed Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
-                Total Credits: <span className="font-bold text-gray-900">12</span>
-              </span>
-              <span className="text-sm text-gray-600">
-                Estimated Cost: <span className="font-bold text-gray-900">{calculateTotalCredits()} Credits</span>
-              </span>
-            </div>
-            <Button size="lg" className="bg-pink-500 hover:bg-pink-600 text-white px-12">
-              <Sparkles className="w-5 h-5 mr-2" />
-              Generate
-            </Button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 px-4 sm:px-6 shadow-lg z-50">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <span className="text-sm sm:text-base text-gray-600">Estimated Credits:</span>
+            <span className="text-2xl sm:text-3xl font-bold text-blue-600">{calculateTotalCredits()}</span>
           </div>
+          <Button className="w-full sm:w-auto bg-pink-500 hover:bg-pink-600 text-white px-8 sm:px-12 py-5 sm:py-6 text-base sm:text-lg font-semibold rounded-lg">
+            Generate
+          </Button>
         </div>
       </div>
     </div>

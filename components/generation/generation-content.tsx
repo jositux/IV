@@ -260,11 +260,11 @@ export function GenerationContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 p-4">
       <AppHeader />
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="px-4 py-12">
         {/* Breadcrumb */}
         <div className="text-sm text-gray-600 mb-2">
           Dashboard / Video and GEO/SEO Sticky Video Code

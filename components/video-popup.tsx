@@ -44,16 +44,14 @@ export function VideoPopup({ isOpen, onClose }: VideoPopupProps) {
         </Button>
 
         {/* Video Container */}
-        <div className="relative aspect-video bg-black">
-          <video
-            className="w-full h-full"
-            controls
-            autoPlay
-            src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-          >
-            Your browser does not support the video tag.
-          </video>
-        </div>
+        <div className="relative aspect-video bg-black w-full h-full">
+  <iframe
+    src="https://iframe.mediadelivery.net/embed/346829/8bed3b2f-0f26-4008-99cd-b65f54155eea"
+    className="absolute top-0 left-0 w-full h-full"
+    frameBorder="0"
+    allowFullScreen
+  ></iframe>
+</div>
 
         {/* Optional: Video Info */}
         <div className="p-6 bg-gradient-to-br from-purple-900 to-purple-800 text-white">
