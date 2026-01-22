@@ -28,7 +28,10 @@ export interface GeneratePromptResponse {
 }
 
 export async function generateVideoPrompt(token: string, data: GeneratePromptRequest): Promise<GeneratePromptResponse> {
-  const response = await fetch("/gateway/videos/generate-prompt", {
+  
+  const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+  
+  const response = await fetch(`${BASE_URL}/api/videos/generate-prompt`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
