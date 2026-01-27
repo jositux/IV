@@ -1,42 +1,31 @@
-export interface DocumentUploadResponse {
+export interface FileUploadResponse {
   success: boolean
   data: {
-    id: string
-    name: string
     extractedText: string
-    status: string
+    wordCount: number
+    fileName: string
+    fileType: string
+    documentId: string
+    s3Key: string
+    s3Url: string
   }
 }
 
-export interface DocumentUploadOptions {
-  userId: string
-  saveToS3?: boolean
-  isPrimaryFocus?: boolean
-}
-
-export interface DocumentUrlUploadOptions {
-  url: string
-  userId: string
-  saveToS3?: boolean
-  isPrimaryFocus?: boolean
-}
-
 /**
- * Sube un documento desde un archivo y extrae su texto
- * @param token - JWT token de autenticación
- * @param file - Archivo a subir
- * @param options - Opciones de subida (userId, saveToS3, isPrimaryFocus)
+ * Endpoint: /gateway/documents/upload
+ * Maneja archivos físicos usando FormData
  */
-export const uploadDocument = async (
+export const uploadDocumentFile = async (
   token: string,
   file: File,
-  options: DocumentUploadOptions,
-): Promise<DocumentUploadResponse> => {
+  userId: string,
+  isPrimaryFocus: boolean = false
+): Promise<FileUploadResponse> => {
   const formData = new FormData()
   formData.append("file", file)
-  formData.append("userId", options.userId)
-  formData.append("saveToS3", String(options.saveToS3 ?? true))
-  formData.append("isPrimaryFocus", String(options.isPrimaryFocus ?? false))
+  formData.append("userId", userId)
+  formData.append("saveToS3", "true")
+  formData.append("isPrimaryFocus", String(isPrimaryFocus))
 
   const response = await fetch("/gateway/documents/upload", {
     method: "POST",
@@ -46,39 +35,6 @@ export const uploadDocument = async (
     body: formData,
   })
 
-  if (!response.ok) {
-    throw new Error(`Error ${response.status}: No se pudo subir el documento`)
-  }
-
-  return response.json()
-}
-
-/**
- * Sube un documento desde una URL y extrae su texto
- * @param token - JWT token de autenticación
- * @param options - Opciones de subida (url, userId, saveToS3, isPrimaryFocus)
- */
-export const uploadDocumentFromUrl = async (
-  token: string,
-  options: DocumentUrlUploadOptions,
-): Promise<DocumentUploadResponse> => {
-  const response = await fetch("/gateway/documents/upload", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      url: options.url,
-      userId: options.userId,
-      saveToS3: options.saveToS3 ?? true,
-      isPrimaryFocus: options.isPrimaryFocus ?? false,
-    }),
-  })
-
-  if (!response.ok) {
-    throw new Error(`Error ${response.status}: No se pudo subir el documento desde URL`)
-  }
-
+  if (!response.ok) throw new Error("Failed to upload file")
   return response.json()
 }

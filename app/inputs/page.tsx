@@ -2,7 +2,7 @@
 
 import { AppHeader } from "@/components/shared/app-header"
 import { AppFooter } from "@/components/shared/app-footer"
-import { useVideoCreator } from "./hooks/use-video-creator"
+import { useVideoCreator } from "./hooks/use-video-creator2"
 import {
   ProjectNameCard,
   SectionHeader,
@@ -36,7 +36,6 @@ export default function VideoCreatorV2Page() {
     keywordPhrases,
     audience,
     generating,
-    prompting,
     error,
     success,
     previewVideo,
@@ -49,7 +48,6 @@ export default function VideoCreatorV2Page() {
     customAudience,
     customAudienceOptions,
     canGenerate,
-    canPrompt,
     setFiles,
     setUrls,
     setNewUrl,
@@ -66,7 +64,6 @@ export default function VideoCreatorV2Page() {
     setTargetAudience,
     setCustomAudience,
     setCustomAudienceOptions,
-    handleGeneratePrompt,
     handleGenerate,
     handlePlayVideo,
     toggleProduct,
@@ -89,7 +86,8 @@ export default function VideoCreatorV2Page() {
             </p>
           </div>
 
-          <AlertMessages error={error} success={success} />
+          <AlertMessages  error={error ?? ""}
+  success={success ?? ""} />
 
           <ProjectNameCard
             projectName={projectName}
@@ -192,10 +190,7 @@ export default function VideoCreatorV2Page() {
       <StickyFooter
         totalCredits={calculateTotalCredits()}
         generating={generating}
-        prompting={prompting}
         canGenerate={canGenerate}
-        canPrompt={canPrompt}
-        onGeneratePrompt={handleGeneratePrompt}
         onGenerate={handleGenerate}
       />
     </div>
