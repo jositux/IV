@@ -11,6 +11,8 @@ import {
   Clock,
   CreditCard,
   X,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +39,8 @@ import {
 } from "@/services/video/video-by-user";
 import { getAuthToken } from "@/lib/get-auth-token";
 import { getListProjects, type Project } from "@/services/get-list-projects";
+import { getCreditHistory } from "@/services/get-credits";
+import { reprocessVideo } from "@/services/video/reprocess-video";
 import { motion, AnimatePresence } from "framer-motion";
 
 const filters = [
@@ -59,10 +63,10 @@ export default function Dashboard() {
 
   const [videos, setVideos] = useState<UserVideo[]>([]);
   const [videoCount, setVideoCount] = useState(0);
-  // CAMBIO: Inicializamos en true para evitar el destello del empty state
   const [videosLoading, setVideosLoading] = useState(true);
   const [videosError, setVideosError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [currentBalance, setCurrentBalance] = useState<number>(0);
 
   const {
     user: auth0User,
@@ -100,14 +104,18 @@ export default function Dashboard() {
         setVideosError(null);
         try {
           const token = await getAuthToken();
-          const [videosResponse, projectsResponse] = await Promise.all([
+          const [videosResponse, projectsResponse, creditsResponse] = await Promise.all([
             getVideosByUser(token, backendUser.id),
             getListProjects(token),
+            getCreditHistory(token, backendUser.id)
           ]);
           setVideos(videosResponse.data);
           setVideoCount(videosResponse.count);
           if (projectsResponse.success) {
             setProjects(projectsResponse.data);
+          }
+          if (creditsResponse.success) {
+            setCurrentBalance(creditsResponse.data.currentBalance);
           }
         } catch (err) {
           console.error("Error fetching videos:", err);
@@ -119,6 +127,20 @@ export default function Dashboard() {
       loadVideosAndProjects();
     }
   }, [backendUser?.id, getAccessTokenSilently]);
+
+  const handleRebuild = async (videoId: string) => {
+    try {
+      const token = await getAuthToken();
+      setVideos((prev) =>
+        prev.map((v) => (v.tavusVideoId === videoId ? { ...v, status: "queued" } : v))
+      );
+      await reprocessVideo(token, videoId);
+      const creditsRes = await getCreditHistory(token, backendUser!.id);
+      if (creditsRes.success) setCurrentBalance(creditsRes.data.currentBalance);
+    } catch (error) {
+      console.error("Rebuild failed:", error);
+    }
+  };
 
   const getProjectName = (projectId: string | null): string | null => {
     if (!projectId) return null;
@@ -143,6 +165,7 @@ export default function Dashboard() {
     > = {
       completed: { variant: "default", color: "bg-green-100 text-green-800" },
       processing: { variant: "secondary", color: "bg-blue-100 text-blue-800" },
+      queued: { variant: "secondary", color: "bg-blue-100 text-blue-800" },
       pending: { variant: "outline", color: "bg-yellow-100 text-yellow-800" },
       failed: { variant: "destructive", color: "bg-red-100 text-red-800" },
     };
@@ -156,7 +179,7 @@ export default function Dashboard() {
 
   const updatedStats = [
     { label: "Total videos", value: videoCount, icon: Video },
-    { label: "Total deliverables", value: 0, icon: FileCheck },
+    { label: "Available Credits", value: currentBalance, icon: CreditCard },
     { label: "long form articles", value: 0, icon: FileText },
     { label: "Landing pages", value: 0, icon: Monitor },
   ];
@@ -229,7 +252,7 @@ export default function Dashboard() {
               <p className="text-red-600">{videosError}</p>
             </CardContent>
           </Card>
-        ) : !videosLoading && videos.length === 0 ? ( // CAMBIO: Solo muestra si terminó de cargar Y no hay videos
+        ) : !videosLoading && videos.length === 0 ? (
           <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12 text-center">
             <h2 className="mb-4 text-5xl font-medium text-[#080936]">
               Create My First video
@@ -266,127 +289,149 @@ export default function Dashboard() {
                   <AnimatePresence>
                     {filteredVideos
                       .filter(
-                        (video) => video.status.toLowerCase() !== "failed"
+                        (video) => video.status.toLowerCase() !== "test"
                       )
-                      .map((video) => (
-                        <motion.div
-                          key={video.videoId}
-                          layout
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full">
-                            <CardContent className="p-0">
-                              <div className="relative aspect-video">
-                                {video.thumbnailURL ? (
-                                  <img
-                                    src={`/assets/avatars/${video.replicaId}.jpg`}
-                                    alt="Video thumbnail"
-                                    className="w-full h-full object-cover rounded-t-lg"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 rounded-t-lg flex items-center justify-center">
-                                    <Video className="w-12 h-12 text-white" />
-                                  </div>
-                                )}
-                                {video.status.toLowerCase() === "completed" &&
-                                  video.embed && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg">
-                                      <Button
-                                        size="lg"
-                                        className="rounded-full bg-white/90 hover:bg-white text-gray-900 w-16 h-16 p-0 cursor-pointer"
-                                        onClick={() => handlePlayVideo(video)}
-                                      >
-                                        <Play
-                                          className="w-8 h-8 ml-1"
-                                          fill="#6D58BB"
-                                          color="#6D58BB"
-                                        />
-                                      </Button>
+                      .map((video) => {
+                        const isFailed = video.status.toLowerCase() === "failed";
+                        const canRebuild = isFailed && currentBalance >= (video.creditsCharged || 0);
+                        
+                        return (
+                          <motion.div
+                            key={video.videoId}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full">
+                              <CardContent className="p-0">
+                                <div className="relative aspect-video">
+                                  {video.thumbnailURL || video.replicaId ? (
+                                    <img
+                                      src={`/assets/avatars/${video.replicaId}.jpg`}
+                                      alt="Video thumbnail"
+                                      className="w-full h-full object-cover rounded-t-lg"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 rounded-t-lg flex items-center justify-center">
+                                      <Video className="w-12 h-12 text-white" />
                                     </div>
                                   )}
-                                <div className="absolute top-2 right-2">
-                                  <Badge
-                                    className={
-                                      getStatusBadge(video.status).color
-                                    }
-                                  >
-                                    {video.status}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div className="p-5 space-y-4 bg-white rounded-b-xl border-t border-gray-100">
-                                {getProjectName(video.projectId) && (
-                                  <div className="flex items-center gap-2">
-                                    <Link
-                                      href={`/generation/${video?.videoId}/`}
-                                      className="w-full"
+                                  {video.status.toLowerCase() === "completed" &&
+                                    video.embed && (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg">
+                                        <Button
+                                          size="lg"
+                                          className="rounded-full bg-white/90 hover:bg-white text-gray-900 w-16 h-16 p-0 cursor-pointer"
+                                          onClick={() => handlePlayVideo(video)}
+                                        >
+                                          <Play
+                                            className="w-8 h-8 ml-1"
+                                            fill="#6D58BB"
+                                            color="#6D58BB"
+                                          />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  <div className="absolute top-2 right-2">
+                                    <Badge
+                                      className={
+                                        getStatusBadge(video.status).color
+                                      }
                                     >
-                                      <h2 className="text-2xl text-[#272830] font-medium truncate">
-                                        {getProjectName(video.projectId)}
-                                      </h2>
-                                    </Link>
+                                      {video.status}
+                                    </Badge>
                                   </div>
-                                )}
-                                <div className="relative">
-                                  <p className="text-sm leading-relaxed text-[#272830] line-clamp-1 min-h-[40px] italic">
-                                    "{video.prompt?.replace(/<[^>]*>?/gm, "")}"
-                                  </p>
                                 </div>
-                                <div className="h-px bg-gray-50 w-full" />
-                                <div className="flex flex-col gap-3">
-                                  <div className="flex items-center justify-between">
+                                <div className="p-5 space-y-4 bg-white rounded-b-xl border-t border-gray-100">
+                                  {getProjectName(video.projectId) && (
                                     <div className="flex items-center gap-2">
-                                      {video.duration && (
-                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium text-[10px] uppercase tracking-wider">
-                                          <Clock className="w-3 h-3" />
-                                          <span>{video.duration} sec</span>
-                                        </div>
-                                      )}
-                                      {video.creditsCharged && (
-                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 rounded-md font-medium text-[10px] uppercase tracking-wider">
-                                          <CreditCard className="w-3 h-3" />
-                                          <span>
-                                            {video.creditsCharged} credits
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <span className="text-[12px] font-light text-gray-400">
-                                      {new Date(
-                                        video.createdAt
-                                      ).toLocaleDateString("es-ES", {
-                                        day: "2-digit",
-                                        month: "short",
-                                        year: "numeric",
-                                      })}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center justify-between border-t border-gray-50 pt-3">
-                                    {video.status.toLowerCase() ===
-                                      "completed" && (
                                       <Link
-                                        href={`/generation/${video?.videoId}/`}
+                                        href={`/generation/${video?.projectId}/`}
                                         className="w-full"
                                       >
-                                        <Button
-                                          variant="ghost"
-                                          className="w-full h-10 px-4 flex items-center justify-center gap-2 bg-[#E2F2FE] text-[#080936] hover:bg-[#6D58BB] hover:text-white text-[13px] font-normal rounded-[20px] transition-all border-none cursor-pointer"
-                                        >
-                                          View Project{" "}
-                                          <ArrowRight className="w-3.5 h-3.5" />
-                                        </Button>
+                                        <h2 className="text-2xl text-[#272830] font-medium truncate">
+                                          {getProjectName(video.projectId)}
+                                        </h2>
                                       </Link>
+                                    </div>
+                                  )}
+                                  <div className="relative">
+                                    {isFailed ? (
+                                       <p className="text-sm leading-relaxed text-[#272830] line-clamp-1 min-h-[40px] italic">
+                                       "{video.prompt?.replace(/<[^>]*>?/gm, "")}"
+                                     </p>
+                                    ) : (
+                                      <p className="text-sm leading-relaxed text-[#272830] line-clamp-1 min-h-[40px] italic">
+                                        "{video.prompt?.replace(/<[^>]*>?/gm, "")}"
+                                      </p>
                                     )}
                                   </div>
+                                  <div className="h-px bg-gray-50 w-full" />
+                                  <div className="flex flex-col gap-3">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        {video.duration && (
+                                          <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium text-[10px] uppercase tracking-wider">
+                                            <Clock className="w-3 h-3" />
+                                            <span>{video.duration} sec</span>
+                                          </div>
+                                        )}
+                                        {video.creditsCharged && (
+                                          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md font-medium text-[10px] uppercase tracking-wider ${isFailed ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
+                                            <CreditCard className="w-3 h-3" />
+                                            <span>
+                                              {video.creditsCharged} credits
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <span className="text-[12px] font-light text-gray-400">
+                                        {new Date(
+                                          video.createdAt
+                                        ).toLocaleDateString("es-ES", {
+                                          day: "2-digit",
+                                          month: "short",
+                                          year: "numeric",
+                                        })}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center justify-between border-t border-gray-50 pt-3">
+                                      {video.status.toLowerCase() ===
+                                      "completed" ? (
+                                        <Link
+                                          href={`/generation/${video?.projectId}/`}
+                                          className="w-full"
+                                        >
+                                          <Button
+                                            variant="ghost"
+                                            className="w-full h-10 px-4 flex items-center justify-center gap-2 bg-[#E2F2FE] text-[#080936] hover:bg-[#6D58BB] hover:text-white text-[13px] font-normal rounded-[20px] transition-all border-none cursor-pointer"
+                                          >
+                                            View Project{" "}
+                                            <ArrowRight className="w-3.5 h-3.5" />
+                                          </Button>
+                                        </Link>
+                                      ) : isFailed && canRebuild ? (
+                                        <Button
+                                          onClick={() => handleRebuild(video.tavusVideoId)}
+                                          className="w-full h-10 bg-[#6D58BB] text-white hover:bg-gray-900 rounded-[20px] gap-2 transition-all cursor-pointer"
+                                        >
+                                          <RefreshCw className="w-3.5 h-3.5" /> Rebuild Video
+                                        </Button>
+                                      ) : isFailed && !canRebuild ? (
+                                        <Button disabled className="w-full h-10 bg-gray-100 text-gray-400 rounded-[20px] text-[10px] uppercase font-bold border-none">
+                                          Insufficient Credits
+                                        </Button>
+                                      ) : null}
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      ))}
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
                   </AnimatePresence>
                 </motion.div>
               )}
@@ -415,12 +460,11 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* DIALOG ORIGINAL (SIN TOCAR) */}
       <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
-        <DialogContent className="max-w-6xl p-0 overflow-hidden &>button]:hidden">
+        <DialogContent className="max-w-6xl p-0 overflow-hidden [&>button]:hidden">
           <Button
             onClick={() => setIsVideoModalOpen(false)}
-            className="absolute top-2 right-2 z-100 bg-black"
+            className="absolute top-2 right-2 z-[100] bg-black"
           >
             Close
           </Button>

@@ -1,32 +1,35 @@
-export interface VideoStatus {
-  videoId: string
-  status: "pending" | "processing" | "completed" | "failed"
-  cdnUrl?: string
-  s3Url?: string
+
+export interface VideoStatusData {
+  replica_id: string;
+  status: string;
+  video_url: string;
+  cdnUrl: string;
+  directPlay: string;
+  embed: string;
+  thumbnailURL: string;
+  previewAnimationURL: string;
 }
 
 export interface VideoStatusResponse {
-  success: boolean
-  data: VideoStatus
+  success: boolean;
+  data: VideoStatusData;
 }
 
-/**
- * Consulta el estado de un video
- * @param token - JWT token de autenticación
- * @param replicaId - ID de la replica del video
- */
-export const getVideoStatus = async (token: string, replicaId: string): Promise<VideoStatusResponse> => {
-  const response = await fetch(`/gateway/videos/status/${replicaId}`, {
+export async function getVideoStatus(
+  token: string,
+  tavusVideoId: string
+): Promise<VideoStatusResponse> {
+  const response = await fetch(`gateway/videos/status/${tavusVideoId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-  })
+  });
 
   if (!response.ok) {
-    throw new Error(`Error ${response.status}: No se pudo obtener el estado del video`)
+    throw new Error(`Failed to get video status: ${response.statusText}`);
   }
 
-  return response.json()
+  return response.json();
 }

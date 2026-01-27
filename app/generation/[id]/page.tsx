@@ -1,293 +1,226 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
-  Copy, Check, Download, ArrowLeft, 
-  Clock, CreditCard, FileText, Code, 
-  Layout, Smartphone 
+  Play, 
+  FileCode, 
+  Sparkles, 
+  BookOpen, 
+  MonitorPlay, 
+  Wrench, 
+  Search, 
+  ArrowLeft, 
+  Loader2, 
+  Target, 
+  Link as LinkIcon, 
+  Code 
 } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/shared/app-header";
-import { getVideosByUser, type UserVideo } from "@/services/video/video-by-user";
 import { getAuthToken } from "@/lib/get-auth-token";
-import { getListProjects, type Project } from "@/services/get-list-projects";
-import { CodeBlock } from "./components/code-block";
+import { getProjectById, type ProjectDetail, type ProjectVideo } from "@/services/get-project-by-id";
+import { getProjectDeliverables, type ProjectArtifact } from "@/services/deliverables/get-deliverables-by-project-id";
+import { DeliverableCard } from "./components/deliverable-card";
 
 export default function GenerationPage() {
   const params = useParams();
-  const videoId = params.id as string;
-
-  // Estados de Datos
-  const [videoData, setVideoData] = useState<UserVideo | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  
-  // Estados de UI
+  const projectId = params.id as string;
+  const [projectData, setProjectData] = useState<ProjectDetail | null>(null);
+  const [videoData, setVideoData] = useState<ProjectVideo | null>(null);
+  const [deliverables, setDeliverables] = useState<ProjectArtifact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [copiedItems, setCopiedItems] = useState<string[]>([]);
   const [activeSection, setActiveSection] = useState("video-preview");
 
-  // 1. Carga de datos unificada (Video + Proyectos)
+  // --- LÓGICA DE SCROLL SPY ---
+  useEffect(() => {
+    if (loading) return;
+
+    const options = {
+      root: null,
+      rootMargin: "-20% 0px -70% 0px", // Precisión para iluminar el menú
+      threshold: 0,
+    };
+
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(handleIntersect, options);
+    // Observamos tanto secciones como las tarjetas de entregables
+    const targets = document.querySelectorAll("section[id], div[id].deliverable-card-container");
+    targets.forEach((target) => observer.observe(target));
+
+    return () => observer.disconnect();
+  }, [loading]);
+
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
-      setError(null);
       try {
         const token = await getAuthToken();
-        const userStr = localStorage.getItem("user");
-
-        if (!token || !userStr) {
-          setError("Authentication or user session missing");
-          return;
-        }
-
-        const [videosResponse, projectsResponse] = await Promise.all([
-          getVideosByUser(token, userStr),
-          getListProjects(token),
+        const [pRes, dRes] = await Promise.all([
+          getProjectById(token!, projectId),
+          getProjectDeliverables(token!, projectId)
         ]);
-
-        if (videosResponse.success && videosResponse.data) {
-          const video = videosResponse.data.find((v) => v.videoId === videoId);
-          if (video) setVideoData(video);
-          else setError("Video not found");
+        
+        if (pRes.success) { 
+          setProjectData(pRes.data); 
+          setVideoData(pRes.data?.videos?.[0] || null); 
         }
-
-        if (projectsResponse.success) {
-          setProjects(projectsResponse.data);
-        }
-      } catch (err) {
-        console.error("Error:", err);
-        setError("An error occurred while loading data");
+        if (dRes.success) setDeliverables(dRes.data);
+      } catch (error) {
+        console.error("Error loading data:", error);
       } finally {
         setLoading(false);
       }
     };
+    loadData();
+  }, [projectId]);
 
-    if (videoId) loadData();
-  }, [videoId]);
-
-  // 2. Utilidad para nombre de proyecto
-  const getProjectName = (projectId: string | null): string => {
-    if (!projectId) return "Untitled Project";
-    const project = projects.find((p) => p.projectId === projectId);
-    return project?.projectName || "Project";
+  const getDeliverableContent = (type: string) => {
+    const item = deliverables.find(d => d.artifactType === type);
+    return item?.contentBody?.replace(/<[^>]+_(BEGIN|END)>/g, "").trim() || null;
   };
 
-  // 3. Observer para el Scroll (Activa items de la sidebar)
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = ["video-preview", "script", "direct-play", "embed", "sticky-geo", "deliverables"];
-      for (const section of sections) {
-        const element = document.getElementById(section);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top >= 0 && rect.top <= 300) {
-            setActiveSection(section);
-            break;
-          }
-        }
-      }
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const handleCopy = async (content: string, id: string) => {
-    await navigator.clipboard.writeText(content);
-    setCopiedItems((prev) => [...prev, id]);
-    setTimeout(() => setCopiedItems((prev) => prev.filter((item) => item !== id)), 2000);
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const sidebarNavItems = [
-    { id: "video-preview", label: "Video Preview", icon: Layout },
-    { id: "script", label: "Video Script", icon: FileText },
-    { id: "direct-play", label: "Direct Play URL", icon: Smartphone },
-    { id: "embed", label: "Embed Code", icon: Code },
-    { id: "sticky-geo", label: "Sticky Video (GEO)", icon: Layout },
-    { id: "deliverables", label: "All Deliverables", icon: Download },
-  ];
-
-  if (loading) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-    </div>
-  );
-
-  if (error || !videoData) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-      <p className="text-destructive font-medium">{error || "Data not found"}</p>
-      <Link href="/dashboard"><Button variant="outline"><ArrowLeft className="mr-2 w-4 h-4" /> Back to Dashboard</Button></Link>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FB]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
+          <p className="text-gray-400 font-medium italic">Preparing your assets...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 bg-[#F8F9FB]">
       <AppHeader />
-
-      <div className="py-10">
+      
+      <div className="py-10 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* SIDEBAR (33% - col-span-4) */}
+          {/* SIDEBAR NAVEGACIÓN */}
           <aside className="lg:col-span-4">
-            <div className="sticky top-10 space-y-8">
-              {/* Navegación de retorno */}
-              <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors group">
-                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                <span className="font-semibold">Back to Dashboard</span>
-              </Link>
-
-              {/* Menú de Entregables */}
-              <div className="bg-white p-2 rounded-[24px] border border-gray-200 shadow-sm">
-                <h3 className="px-4 pt-4 pb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">Navigation</h3>
-                <nav className="space-y-1">
-                  {sidebarNavItems.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => scrollToSection(item.id)}
-                      className={`flex items-center gap-3 w-full text-left px-4 py-3 text-sm rounded-xl transition-all ${
-                        activeSection === item.id
-                          ? "bg-[#080936] text-white shadow-md"
-                          : "text-gray-500 hover:bg-gray-50"
-                      }`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {item.label}
-                    </button>
-                  ))}
-                </nav>
+            <div className="sticky top-10 space-y-6">
+              <div>
+                <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 mb-6 transition-colors group">
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
+                  <span className="font-semibold text-sm">Dashboard</span>
+                </Link>
+                <h2 className="text-[28px] font-bold text-[#1a2b4b] leading-tight mb-2">Project Assets</h2>
+                <p className="text-gray-500 text-sm">Review and implement your generated content.</p>
               </div>
 
-              {/* Card de Stats (Status, Duración, Créditos) */}
-              <div className="bg-white p-6 rounded-[24px] border border-gray-200 shadow-sm space-y-4">
-                <div className="flex justify-between items-center pb-4 border-b border-gray-50">
-                   <span className="text-sm text-gray-500">Video Status</span>
-                   <Badge className={videoData.status === "completed" ? "bg-green-500" : "bg-amber-500"}>
-                     {videoData.status}
-                   </Badge>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg">
-                    <Clock className="w-4 h-4 text-blue-600" />
-                    <span className="text-xs font-bold text-blue-700">{videoData.duration || 0}s</span>
-                  </div>
-                  <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-lg">
-                    <CreditCard className="w-4 h-4 text-amber-600" />
-                    <span className="text-xs font-bold text-amber-700">{videoData.creditsCharged || 0}</span>
-                  </div>
-                </div>
+              <div className="space-y-2">
+                {[
+                  { id: "video-preview", icon: Play, label: "Main Video" },
+                  { id: "urls-script", icon: FileCode, label: "Links & Embeds" },
+                  { id: "geo-analysis", icon: Sparkles, label: "GEO Strategy" },
+                  { id: "add-website", icon: BookOpen, label: "Guide & Steps" },
+                  { id: "sticky-action", icon: MonitorPlay, label: "Sticky Player" },
+                  { id: "seo-package", icon: Wrench, label: "SEO Metadata" },
+                  { id: "keyword-analysis", icon: Search, label: "Keyword Research" },
+                ].map((item) => (
+                  <button 
+                    key={item.id}
+                    onClick={() => scrollToSection(item.id)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 text-left ${
+                      activeSection === item.id 
+                        ? "bg-[#080936] text-white shadow-xl scale-[1.02]" 
+                        : "bg-white border border-gray-100 text-[#5b4fd7] hover:border-indigo-200"
+                    }`}
+                  >
+                    <item.icon className={`w-5 h-5 shrink-0 ${activeSection === item.id ? "text-white" : "text-indigo-500"}`} />
+                    <span className="text-[15px] font-bold tracking-tight">{item.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </aside>
 
-          {/* CONTENIDO PRINCIPAL (66% - col-span-8) */}
-          <main className="lg:col-span-8 space-y-16">
+          {/* CONTENIDO PRINCIPAL */}
+          <main className="lg:col-span-8 space-y-12">
             
-            {/* Header del Proyecto */}
-            <div className="space-y-2">
-              <h1 className="text-4xl font-light text-gray-400 leading-tight">
-                Project: <span className="font-bold text-[#080936]">{getProjectName(videoData.projectId)}</span>
+            {/* VIDEO SECTION */}
+            <section id="video-preview" className="scroll-mt-10">
+              <h1 className="text-2xl font-bold text-[#080936] mb-6 flex items-center gap-3">
+                <span className="w-2 h-8 bg-indigo-600 rounded-full" />
+                {projectData?.projectName}
               </h1>
-              <p className="text-gray-500">Access all your GEO-Optimized assets for this generation.</p>
-            </div>
-
-            {/* Video Preview */}
-            <section id="video-preview" className="scroll-mt-24">
-              <div className="rounded-[32px] overflow-hidden border-8 border-white shadow-2xl bg-black aspect-video relative">
-                <div
-                  dangerouslySetInnerHTML={{ __html: videoData.embed || "" }}
-                  className="absolute inset-0 [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-none"
+              <div className="aspect-video rounded-[32px] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10">
+                <div 
+                  className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full" 
+                  dangerouslySetInnerHTML={{ __html: videoData?.metaData?.embed || "" }} 
                 />
               </div>
             </section>
 
-            {/* Video Script */}
-            <section id="script" className="scroll-mt-24 space-y-6">
-              <h2 className="text-2xl font-bold text-[#080936]">Video Script</h2>
-              <div className="rounded-[24px] border bg-white p-8 shadow-sm">
-                <p className="text-lg leading-relaxed text-gray-600 italic font-serif">
-                  "{videoData.prompt?.replace(/<[^>]*>?/gm, "")}"
-                </p>
-              </div>
-            </section>
+            {/* ENTREGABLES MODULARES */}
+            <div id="urls-script" className="deliverable-card-container scroll-mt-10">
+              <DeliverableCard 
+                title="Direct Links & Scripts" 
+                icon={FileCode} 
+                links={[
+                  { label: "Direct Playback URL", value: videoData?.metaData?.directPlay || "", icon: LinkIcon },
+                  { label: "Embed HTML Code", value: videoData?.metaData?.embed || "", icon: Code }
+                ]}
+              />
+            </div>
 
-            {/* Direct Play URL */}
-            <section id="direct-play" className="scroll-mt-24 space-y-6">
-              <h2 className="text-2xl font-bold text-[#080936]">Direct Play URL</h2>
-              <div className="rounded-[24px] border bg-white p-8 shadow-sm">
-                <p className="text-sm text-gray-500 mb-4">Perfect for direct sharing or linking in emails and social media.</p>
-                <div className="bg-gray-50 p-4 rounded-xl font-mono text-sm break-all mb-6 border border-gray-100">
-                  {videoData.directPlay || videoData.tavusUrl}
-                </div>
-                <Button 
-                  className="rounded-full px-8"
-                  onClick={() => handleCopy(videoData.directPlay || videoData.tavusUrl || "", "direct-play")}
-                >
-                  {copiedItems.includes("direct-play") ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                  {copiedItems.includes("direct-play") ? "Copied" : "Copy URL"}
-                </Button>
-              </div>
-            </section>
+            <div id="geo-analysis" className="deliverable-card-container scroll-mt-10">
+              <DeliverableCard 
+                title="GEO Optimization Strategy" 
+                icon={Sparkles} 
+                defaultExpanded={true} 
+                html={getDeliverableContent("GEO_OPTIMIZATION_REPORT_HTML")} 
+              />
+            </div>
 
-            {/* Embed Code */}
-            <section id="embed" className="scroll-mt-24 space-y-6">
-              <h2 className="text-2xl font-bold text-[#080936]">Standard Embed Code</h2>
-              <CodeBlock code={videoData.embed || ""} filename="embed.html" language="html" />
-            </section>
+            <div id="add-website" className="deliverable-card-container scroll-mt-10">
+              <DeliverableCard 
+                title="Customer Implementation Guide" 
+                icon={BookOpen} 
+                defaultExpanded={true} 
+                html={getDeliverableContent("CUSTOMER_INSTRUCTIONS_HTML")} 
+              />
+            </div>
 
-            {/* Sticky GEO Video */}
-            <section id="sticky-geo" className="scroll-mt-24 space-y-6">
-              <h2 className="text-2xl font-bold text-[#080936]">Sticky Video (GEO Optimized)</h2>
-              <div className="space-y-6">
-                <p className="text-gray-500">This implementation ensures maximum visibility by staying active while users browse your content.</p>
-                <CodeBlock code={videoData.embed || ""} filename="sticky-geo.html" language="html" />
-                <div className="grid grid-cols-2 gap-4">
-                  {["WordPress", "Shopify", "Webflow", "Squarespace"].map(plat => (
-                    <div key={plat} className="p-4 bg-white border border-gray-100 rounded-xl text-sm font-medium text-gray-600">
-                      • {plat} Ready
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
+            <div id="sticky-action" className="deliverable-card-container scroll-mt-10">
+              <DeliverableCard 
+                title="Sticky Player Implementation" 
+                icon={MonitorPlay} 
+                code={getDeliverableContent("COMPLETE_HTML_CODE")} 
+              />
+            </div>
 
-            {/* All Deliverables */}
-            <section id="deliverables" className="scroll-mt-24 space-y-8">
-              <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold text-[#080936]">Project Artifacts</h2>
-                <Badge variant="outline" className="px-4 py-1 rounded-full border-blue-200 text-blue-700">7 Files Total</Badge>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* File MP4 */}
-                <div className="p-6 bg-white border border-gray-200 rounded-[24px] shadow-sm hover:border-blue-300 transition-colors">
-                  <h4 className="font-bold mb-1">Video Asset</h4>
-                  <p className="text-xs text-gray-400 mb-4 uppercase">MP4 Format</p>
-                  <a href={videoData.directPlay || videoData.tavusUrl} target="_blank" className="block">
-                    <Button variant="outline" className="w-full rounded-full"><Download className="mr-2 w-4 h-4" /> Download MP4</Button>
-                  </a>
-                </div>
+            <div id="seo-package" className="deliverable-card-container scroll-mt-10">
+              <DeliverableCard 
+                title="SEO Metadata Package" 
+                icon={Wrench} 
+                defaultExpanded={true} 
+                html={getDeliverableContent("SEO_GEO_OPTIMIZATION_PACKAGE_HTML")} 
+              />
+            </div>
 
-                {/* Thumbnail */}
-                <div className="p-6 bg-white border border-gray-200 rounded-[24px] shadow-sm">
-                  <h4 className="font-bold mb-1">Main Thumbnail</h4>
-                  <p className="text-xs text-gray-400 mb-4 uppercase">JPG Format</p>
-                  {videoData.thumbnailURL && (
-                    <img src={videoData.thumbnailURL} alt="Thumb" className="rounded-lg mb-4 h-24 w-full object-cover" />
-                  )}
-                 
-                    <Button variant="outline" className="w-full rounded-full"><Download className="mr-2 w-4 h-4" /> Download Image</Button>
-                 
-                </div>
-              </div>
-            </section>
+            <div id="keyword-analysis" className="deliverable-card-container scroll-mt-10">
+              <DeliverableCard 
+                title="Keyword Gap Analysis" 
+                icon={Target} 
+                defaultExpanded={true} 
+                html={getDeliverableContent("KEYWORD_RESEARCH_HTML")} 
+              />
+            </div>
 
           </main>
         </div>
