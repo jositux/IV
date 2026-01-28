@@ -1,24 +1,27 @@
 export interface CreateFolderRequest {
   folderName: string
+  color?: string // Added since your body includes it
 }
 
 export interface CreateFolderResponse {
-  userInput: string
-  userId: string
-  duration: number
-  style: string
-  language: string
-  position: string
-  size: string
-  trainingType: string
+  success: boolean
+  data: {
+    folderId: string
+    folderName: string
+    color: string
+    createdAt: string
+  }
 }
 
 /**
- * Crea una nueva carpeta para organizar proyectos
- * @param token - JWT token de autenticación
- * @param request - Datos de la carpeta a crear
+ * Creates a new folder to organize projects
+ * @param token - Authentication JWT token
+ * @param request - Folder creation data
  */
-export const createFolder = async (token: string, request: CreateFolderRequest): Promise<CreateFolderResponse> => {
+export const createFolder = async (
+  token: string, 
+  request: CreateFolderRequest
+): Promise<CreateFolderResponse> => {
   const response = await fetch("/gateway/folders", {
     method: "POST",
     headers: {
@@ -29,7 +32,8 @@ export const createFolder = async (token: string, request: CreateFolderRequest):
   })
 
   if (!response.ok) {
-    throw new Error(`Error ${response.status}: No se pudo crear la carpeta`)
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Error ${response.status}: Could not create folder`);
   }
 
   return response.json()
