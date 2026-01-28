@@ -1,18 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Video,
   FileText,
-  FileCheck,
   Monitor,
   Search,
   ArrowRight,
   Play,
   Clock,
   CreditCard,
-  X,
   RefreshCw,
-  AlertCircle,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,99 +51,117 @@ const filters = [
 ];
 
 export default function Dashboard() {
+  // --- UI STATE ---
   const [activeFilter, setActiveFilter] = useState("All videos");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<UserVideo | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
+  // --- DATA STATE ---
   const [fullUserData, setFullUserData] = useState<UserProfile | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-
   const [videos, setVideos] = useState<UserVideo[]>([]);
   const [videoCount, setVideoCount] = useState(0);
-  const [videosLoading, setVideosLoading] = useState(true);
-  const [videosError, setVideosError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentBalance, setCurrentBalance] = useState<number>(0);
 
-  const {
-    user: auth0User,
-    isLoading: auth0Loading,
-    getAccessTokenSilently,
-  } = useAuth0();
-  const {
-    backendUser,
-    loading: backendLoading,
-    error: backendError,
-  } = useBackendAuth();
+  // --- PERSISTENCE STATE ---
+  const [rebuildingIds, setRebuildingIds] = useState<string[]>([]);
 
+  // --- LOADING & ERROR STATES ---
+  const [isLoading, setIsLoading] = useState(true);
+  const [videosError, setVideosError] = useState<string | null>(null);
+
+  const { backendUser } = useBackendAuth();
+
+  /**
+   * INITIAL HYDRATION
+   */
   useEffect(() => {
-    if (backendUser?.id) {
-      const loadFullProfile = async () => {
-        setDetailsLoading(true);
-        try {
-          const data = await fetchUserProfile(backendUser.id);
-          setFullUserData(data);
-          localStorage.setItem("user", backendUser.id);
-        } catch (err) {
-          console.error("Error fetching full profile:", err);
-        } finally {
-          setDetailsLoading(false);
-        }
-      };
-      loadFullProfile();
+    const saved = localStorage.getItem("pending_rebuilds");
+    if (saved) setRebuildingIds(JSON.parse(saved));
+  }, []);
+
+  /**
+   * CENTRALIZED DATA LOADING
+   */
+  const loadDashboardData = useCallback(async () => {
+    if (!backendUser?.id) return;
+
+    setIsLoading(true);
+    setVideosError(null);
+
+    try {
+      const token = await getAuthToken();
+
+      const [profileData, videosResponse, projectsResponse, creditsResponse] = await Promise.all([
+        fetchUserProfile(backendUser.id),
+        getVideosByUser(token, backendUser.id),
+        getListProjects(token),
+        getCreditHistory(token, backendUser.id)
+      ]);
+
+      const freshVideos = videosResponse.data;
+
+      // CLEANUP LOGIC: Remove project if status is "completed"
+      const saved = localStorage.getItem("pending_rebuilds");
+      if (saved) {
+        const pendingList: string[] = JSON.parse(saved);
+        const stillPending = pendingList.filter(id => {
+          const video = freshVideos.find((v: any) => v.projectId === id);
+          return video && video.status.toLowerCase() !== "completed";
+        });
+        localStorage.setItem("pending_rebuilds", JSON.stringify(stillPending));
+        setRebuildingIds(stillPending);
+      }
+
+      setFullUserData(profileData);
+      setVideos(freshVideos);
+      setVideoCount(videosResponse.count);
+      
+      if (projectsResponse.success) setProjects(projectsResponse.data);
+      if (creditsResponse.success) setCurrentBalance(creditsResponse.data.currentBalance);
+
+      localStorage.setItem("user", backendUser.id);
+    } catch (err) {
+      console.error("Critical Dashboard Error:", err);
+      setVideosError("Failed to load your creative studio data");
+    } finally {
+      setIsLoading(false);
     }
   }, [backendUser?.id]);
 
   useEffect(() => {
-    if (backendUser?.id) {
-      const loadVideosAndProjects = async () => {
-        setVideosLoading(true);
-        setVideosError(null);
-        try {
-          const token = await getAuthToken();
-          const [videosResponse, projectsResponse, creditsResponse] = await Promise.all([
-            getVideosByUser(token, backendUser.id),
-            getListProjects(token),
-            getCreditHistory(token, backendUser.id)
-          ]);
-          setVideos(videosResponse.data);
-          setVideoCount(videosResponse.count);
-          if (projectsResponse.success) {
-            setProjects(projectsResponse.data);
-          }
-          if (creditsResponse.success) {
-            setCurrentBalance(creditsResponse.data.currentBalance);
-          }
-        } catch (err) {
-          console.error("Error fetching videos:", err);
-          setVideosError("Failed to load videos");
-        } finally {
-          setVideosLoading(false);
-        }
-      };
-      loadVideosAndProjects();
-    }
-  }, [backendUser?.id, getAccessTokenSilently]);
+    loadDashboardData();
+  }, [loadDashboardData]);
 
-  const handleRebuild = async (videoId: string) => {
+  /**
+   * REBUILD VIDEO
+   */
+  const handleRebuild = async (videoId: string, projectId: string) => {
+    if (!backendUser?.id) return;
     try {
+      const newRebuildingList = [...rebuildingIds, projectId];
+      setRebuildingIds(newRebuildingList);
+      localStorage.setItem("pending_rebuilds", JSON.stringify(newRebuildingList));
+
       const token = await getAuthToken();
       setVideos((prev) =>
         prev.map((v) => (v.tavusVideoId === videoId ? { ...v, status: "queued" } : v))
       );
       await reprocessVideo(token, videoId);
-      const creditsRes = await getCreditHistory(token, backendUser!.id);
+      const creditsRes = await getCreditHistory(token, backendUser.id);
       if (creditsRes.success) setCurrentBalance(creditsRes.data.currentBalance);
     } catch (error) {
-      console.error("Rebuild failed:", error);
+      console.error("Video rebuild failed:", error);
+      const rollback = rebuildingIds.filter(id => id !== projectId);
+      setRebuildingIds(rollback);
+      localStorage.setItem("pending_rebuilds", JSON.stringify(rollback));
     }
   };
 
   const getProjectName = (projectId: string | null): string | null => {
     if (!projectId) return null;
-    const project = projects.find((p) => p.projectId === projectId);
-    return project?.projectName || null;
+    return projects.find((p) => p.projectId === projectId)?.projectName || null;
   };
 
   const filteredVideos = videos.filter((video) => {
@@ -156,28 +172,17 @@ export default function Dashboard() {
   });
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<
-      string,
-      {
-        variant: "default" | "secondary" | "destructive" | "outline";
-        color: string;
-      }
-    > = {
-      completed: { variant: "default", color: "bg-green-100 text-green-800" },
-      processing: { variant: "secondary", color: "bg-blue-100 text-blue-800" },
-      queued: { variant: "secondary", color: "bg-blue-100 text-blue-800" },
-      pending: { variant: "outline", color: "bg-yellow-100 text-yellow-800" },
-      failed: { variant: "destructive", color: "bg-red-100 text-red-800" },
+    const variants: Record<string, { color: string }> = {
+      completed: { color: "bg-green-100 text-green-800" },
+      processing: { color: "bg-blue-100 text-blue-800" },
+      queued: { color: "bg-blue-100 text-blue-800" },
+      failed: { color: "bg-red-100 text-red-800" },
+      pending: { color: "bg-yellow-100 text-yellow-800" },
     };
     return variants[status.toLowerCase()] || variants.pending;
   };
 
-  const handlePlayVideo = (video: UserVideo) => {
-    setSelectedVideo(video);
-    setIsVideoModalOpen(true);
-  };
-
-  const updatedStats = [
+  const stats = [
     { label: "Total videos", value: videoCount, icon: Video },
     { label: "Available Credits", value: currentBalance, icon: CreditCard },
     { label: "long form articles", value: 0, icon: FileText },
@@ -191,13 +196,11 @@ export default function Dashboard() {
       <main className="mx-auto py-16">
         <h1 className="mb-8 text-5xl font-medium text-[#080936]">Dashboard</h1>
 
+        {/* --- STATS SECTION --- */}
         <div className="mb-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {updatedStats.map((stat) => (
-            <Card
-              key={stat.label}
-              className="border-1 bg-white shadow-none border-gray-200"
-            >
-              <CardContent className="px-6">
+          {stats.map((stat) => (
+            <Card key={stat.label} className="border-1 bg-white shadow-none border-gray-200">
+              <CardContent className="px-6 py-0">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm text-gray-600">{stat.label}</p>
                   <stat.icon className="h-5 w-5 text-gray-900" />
@@ -208,19 +211,16 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {/* --- FILTERS SECTION --- */}
         <div className="mb-6">
-          <h2 className="mb-4 text-2xl font-semibold text-[#080936]">
-            View projects
-          </h2>
+          <h2 className="mb-4 text-2xl font-semibold text-[#080936]">View projects</h2>
           <div className="flex flex-wrap items-center gap-3">
             {filters.map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
                 className={`rounded-full px-5 py-2 text-sm font-light transition-colors ${
-                  activeFilter === filter
-                    ? "bg-gray-700 text-white"
-                    : "bg-[#E2F2FE] text-[#080936] hover:bg-gray-300"
+                  activeFilter === filter ? "bg-gray-700 text-white" : "bg-[#E2F2FE] text-[#080936] hover:bg-gray-300"
                 }`}
               >
                 {filter}
@@ -239,250 +239,119 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {videosLoading ? (
+        {/* --- CONTENT AREA --- */}
+        {isLoading ? (
           <Card className="border-0 bg-white">
             <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
-              <p className="mt-4 text-gray-600">Loading your videos...</p>
+              <p className="mt-4 text-gray-600">Syncing dashboard...</p>
             </CardContent>
           </Card>
         ) : videosError ? (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="p-6">
-              <p className="text-red-600">{videosError}</p>
-            </CardContent>
-          </Card>
-        ) : !videosLoading && videos.length === 0 ? (
+          <Card className="border-red-200 bg-red-50 p-6"><p className="text-red-600">{videosError}</p></Card>
+        ) : filteredVideos.length === 0 ? (
           <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12 text-center">
-            <h2 className="mb-4 text-5xl font-medium text-[#080936]">
-              Create My First video
-            </h2>
-            <p className="mb-4 text-[#3E4462]">
-              PDFs, Word docs, and Web pages are ≈ 400 words each
-            </p>
+            <h2 className="mb-4 text-5xl font-medium text-[#080936]">Create My First video</h2>
             <Link href="/inputs">
-              <Button
-                size="lg"
-                className="rounded-xl bg-[#6D58BB] px-4 py-6 text-lg font-semibold text-white hover:bg-gray-900 cursor-pointer"
-              >
-                Start Creating Now
-                <ArrowRight className="mr-2 h-5 w-5" />
+              <Button size="lg" className="rounded-xl bg-[#6D58BB] px-6 py-6 text-lg font-semibold text-white hover:bg-gray-900">
+                Start Creating Now <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
           </CardContent>
         ) : (
           <>
-            <AnimatePresence mode="popLayout">
-              {filteredVideos.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex min-h-[200px] items-center justify-center text-gray-400 italic"
-                >
-                  No projects found matching your search.
-                </motion.div>
-              ) : (
-                <motion.div
-                  layout
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                >
-                  <AnimatePresence>
-                    {filteredVideos
-                      .filter(
-                        (video) => video.status.toLowerCase() !== "test"
-                      )
-                      .map((video) => {
-                        const isFailed = video.status.toLowerCase() === "failed";
-                        const canRebuild = isFailed && currentBalance >= (video.creditsCharged || 0);
-                        
-                        return (
-                          <motion.div
-                            key={video.videoId}
-                            layout
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full">
-                              <CardContent className="p-0">
-                                <div className="relative aspect-video">
-                                  {video.thumbnailURL || video.replicaId ? (
-                                    <img
-                                      src={`/assets/avatars/${video.replicaId}.jpg`}
-                                      alt="Video thumbnail"
-                                      className="w-full h-full object-cover rounded-t-lg"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-600 rounded-t-lg flex items-center justify-center">
-                                      <Video className="w-12 h-12 text-white" />
-                                    </div>
-                                  )}
-                                  {video.status.toLowerCase() === "completed" &&
-                                    video.embed && (
-                                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg">
-                                        <Button
-                                          size="lg"
-                                          className="rounded-full bg-white/90 hover:bg-white text-gray-900 w-16 h-16 p-0 cursor-pointer"
-                                          onClick={() => handlePlayVideo(video)}
-                                        >
-                                          <Play
-                                            className="w-8 h-8 ml-1"
-                                            fill="#6D58BB"
-                                            color="#6D58BB"
-                                          />
-                                        </Button>
-                                      </div>
-                                    )}
-                                  <div className="absolute top-2 right-2">
-                                    <Badge
-                                      className={
-                                        getStatusBadge(video.status).color
-                                      }
-                                    >
-                                      {video.status}
-                                    </Badge>
-                                  </div>
-                                </div>
-                                <div className="p-5 space-y-4 bg-white rounded-b-xl border-t border-gray-100">
-                                  {getProjectName(video.projectId) && (
-                                    <div className="flex items-center gap-2">
-                                      <Link
-                                        href={`/generation/${video?.projectId}/`}
-                                        className="w-full"
-                                      >
-                                        <h2 className="text-2xl text-[#272830] font-medium truncate">
-                                          {getProjectName(video.projectId)}
-                                        </h2>
-                                      </Link>
-                                    </div>
-                                  )}
-                                  <div className="relative">
-                                    {isFailed ? (
-                                       <p className="text-sm leading-relaxed text-[#272830] line-clamp-1 min-h-[40px] italic">
-                                       "{video.prompt?.replace(/<[^>]*>?/gm, "")}"
-                                     </p>
-                                    ) : (
-                                      <p className="text-sm leading-relaxed text-[#272830] line-clamp-1 min-h-[40px] italic">
-                                        "{video.prompt?.replace(/<[^>]*>?/gm, "")}"
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div className="h-px bg-gray-50 w-full" />
-                                  <div className="flex flex-col gap-3">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-2">
-                                        {video.duration && (
-                                          <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium text-[10px] uppercase tracking-wider">
-                                            <Clock className="w-3 h-3" />
-                                            <span>{video.duration} sec</span>
-                                          </div>
-                                        )}
-                                        {video.creditsCharged && (
-                                          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md font-medium text-[10px] uppercase tracking-wider ${isFailed ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
-                                            <CreditCard className="w-3 h-3" />
-                                            <span>
-                                              {video.creditsCharged} credits
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                      <span className="text-[12px] font-light text-gray-400">
-                                        {new Date(
-                                          video.createdAt
-                                        ).toLocaleDateString("es-ES", {
-                                          day: "2-digit",
-                                          month: "short",
-                                          year: "numeric",
-                                        })}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center justify-between border-t border-gray-50 pt-3">
-                                      {video.status.toLowerCase() ===
-                                      "completed" ? (
-                                        <Link
-                                          href={`/generation/${video?.projectId}/`}
-                                          className="w-full"
-                                        >
-                                          <Button
-                                            variant="ghost"
-                                            className="w-full h-10 px-4 flex items-center justify-center gap-2 bg-[#E2F2FE] text-[#080936] hover:bg-[#6D58BB] hover:text-white text-[13px] font-normal rounded-[20px] transition-all border-none cursor-pointer"
-                                          >
-                                            View Project{" "}
-                                            <ArrowRight className="w-3.5 h-3.5" />
-                                          </Button>
-                                        </Link>
-                                      ) : isFailed && canRebuild ? (
-                                        <Button
-                                          onClick={() => handleRebuild(video.tavusVideoId)}
-                                          className="w-full h-10 bg-[#6D58BB] text-white hover:bg-gray-900 rounded-[20px] gap-2 transition-all cursor-pointer"
-                                        >
-                                          <RefreshCw className="w-3.5 h-3.5" /> Rebuild Video
-                                        </Button>
-                                      ) : isFailed && !canRebuild ? (
-                                        <Button disabled className="w-full h-10 bg-gray-100 text-gray-400 rounded-[20px] text-[10px] uppercase font-bold border-none">
-                                          Insufficient Credits
-                                        </Button>
-                                      ) : null}
-                                    </div>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </motion.div>
-                        );
-                      })}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
-        )}
+            <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <AnimatePresence mode="popLayout">
+                {filteredVideos.map((video) => {
+                  const status = video.status.toLowerCase();
+                  const isFailed = status === "failed";
+                  const isProcessing = status === "processing" || status === "queued";
+                  const isCurrentlyRebuilding = rebuildingIds.includes(video.projectId || "");
+                  const canRebuild = isFailed && currentBalance >= (video.creditsCharged || 0);
+                  
+                  // Badge logic
+                  const displayStatus = (isCurrentlyRebuilding && isFailed) ? "queued" : status;
 
-        {/* Create More section */}
-        {!videosLoading && videos.length > 0 && (
-          <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12 text-center bg-white rounded-[20px] mt-16">
-            <h2 className="mb-4 text-5xl font-medium text-[#080936]">
-              Create More Videos
-            </h2>
-            <p className="mb-4 text-[#3E4462]">
-              PDFs, Word docs, and Web pages are ≈ 400 words each
-            </p>
-            <Link href="/inputs">
-              <Button
-                size="lg"
-                className="rounded-xl bg-[#6D58BB] px-4 py-6 text-lg font-semibold text-white hover:bg-gray-900 cursor-pointer"
-              >
-                Go to create <ArrowRight className="mr-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </CardContent>
+                  return (
+                    <motion.div key={video.videoId} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                      <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full">
+                        <CardContent className="p-0">
+                          <div className="relative aspect-video">
+                            <img src={`/assets/avatars/${video.replicaId || 'default'}.jpg`} alt="Video" className="w-full h-full object-cover rounded-t-lg" />
+                            {status === "completed" && video.embed && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button className="rounded-full bg-white text-gray-900 w-16 h-16" onClick={() => { setSelectedVideo(video); setIsVideoModalOpen(true); }}>
+                                  <Play className="w-8 h-8 ml-1" fill="#6D58BB" color="#6D58BB" />
+                                </Button>
+                              </div>
+                            )}
+                            <Badge className={`absolute top-2 right-2 ${getStatusBadge(displayStatus).color}`}>{displayStatus}</Badge>
+                          </div>
+                          <div className="p-5 space-y-4">
+                            <Link href={`/generation/${video.projectId}/`}><h2 className="text-2xl text-[#272830] font-medium truncate">{getProjectName(video.projectId) || "Untitled Project"}</h2></Link>
+                            <p className="text-sm text-[#272830] line-clamp-1 min-h-[40px] italic">"{video.prompt?.replace(/<[^>]*>?/gm, "")}"</p>
+                            <div className="flex items-center justify-between pt-3 border-t">
+                              <div className="flex gap-2">
+                                <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider"><Clock className="w-3 h-3 inline mr-1" />{video.duration || 0} sec</span>
+                                <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider"><CreditCard className="w-3 h-3 inline mr-1" />{video.creditsCharged || 0} credits</span>
+                              </div>
+                            </div>
+                            <div className="pt-3">
+                              {isCurrentlyRebuilding || isProcessing ? (
+                                <Button disabled className="w-full h-10 bg-blue-50 text-blue-600 rounded-[20px] gap-2 border-none">
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> {status === "processing" ? "Processing..." : "Queued..."}
+                                </Button>
+                              ) : status === "completed" ? (
+                                <Link href={`/generation/${video.projectId}/`} className="w-full"><Button variant="ghost" className="w-full h-10 bg-[#E2F2FE] text-[#080936] rounded-[20px] hover:bg-[#6D58BB] hover:text-white transition-all cursor-pointer">View Project <ArrowRight className="w-3.5 h-3.5 ml-2" /></Button></Link>
+                              ) : isFailed && canRebuild ? (
+                                <Button onClick={() => handleRebuild(video.tavusVideoId, video.projectId!)} className="w-full h-10 bg-[#6D58BB] text-white rounded-[20px] gap-2"><RefreshCw className="w-3.5 h-3.5" /> Rebuild Video</Button>
+                              ) : isFailed && !canRebuild ? (
+                                <Link href="/credits" className="w-full">
+                                  <Button className="w-full h-10 bg-red-600 text-white rounded-[20px] gap-2">
+                                    <CreditCard className="w-3.5 h-3.5" /> Buy Credits
+                                  </Button>
+                                </Link>
+                              ) : (
+                                <Button disabled variant="outline" className="w-full h-10 rounded-[20px] text-gray-400 italic border-none bg-gray-50">Processing...</Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* CREATE MORE SECTION */}
+            <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12 text-center bg-white rounded-[20px] mt-16 border border-gray-100">
+              <h2 className="mb-4 text-5xl font-medium text-[#080936]">Create More Videos</h2>
+              <p className="mb-4 text-[#3E4462]">PDFs, Word docs, and Web pages are ≈ 400 words each</p>
+              <Link href="/inputs">
+                <Button size="lg" className="rounded-xl bg-[#6D58BB] px-6 py-6 text-lg font-semibold text-white hover:bg-gray-900 cursor-pointer">
+                  Go to create <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+            </CardContent>
+          </>
         )}
       </main>
 
+      {/* --- VIDEO PLAYER MODAL --- */}
       <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
-        <DialogContent className="max-w-6xl p-0 overflow-hidden [&>button]:hidden">
-          <Button
-            onClick={() => setIsVideoModalOpen(false)}
-            className="absolute top-2 right-2 z-[100] bg-black"
-          >
-            Close
-          </Button>
-          <DialogHeader className="sr-only">
-            <DialogTitle>Video Player</DialogTitle>
-          </DialogHeader>
-          {selectedVideo?.embed ? (
-            <div className="aspect-video w-full bg-black">
-              <div
-                className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full"
-                dangerouslySetInnerHTML={{ __html: selectedVideo.embed }}
-              />
-            </div>
-          ) : (
-            <div className="aspect-video flex items-center justify-center bg-gray-200 w-full text-gray-500">
-              No video available
-            </div>
-          )}
+        <DialogContent className="max-w-5xl p-0 overflow-hidden bg-black border-none ring-0">
+          <div className="relative aspect-video w-full">
+            <Button variant="ghost" size="icon" onClick={() => setIsVideoModalOpen(false)} className="absolute top-4 right-4 z-[110] bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md">
+              <X className="h-6 w-6" />
+            </Button>
+            <DialogHeader className="sr-only"><DialogTitle>Video Player</DialogTitle></DialogHeader>
+            {selectedVideo?.embed ? (
+              <div className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full" dangerouslySetInnerHTML={{ __html: selectedVideo.embed }} />
+            ) : (
+              <div className="flex h-full items-center justify-center text-white italic">Video source not found.</div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

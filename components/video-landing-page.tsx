@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 
-import { Header } from "@/components/shared/header";
+import { ProfileMenu } from "@/components/shared/profile-menu";
 import { AppFooter } from "@/components/shared/app-footer";
 
 
@@ -93,7 +93,7 @@ export function VideoLandingPage() {
                 Pricing
               </a>
 
-              <Header />
+              <ProfileMenu />
             </nav>
           </div>
         </header>
