@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useRef, useEffect } from "react"
-import { Header } from "@/components/shared/header"
+import { ProfileMenu } from "@/components/shared/profile-menu"
 import { fetchUserProfile, type UserProfile } from "@/services/user-full-service"
 
 export function AppHeader() {
@@ -60,49 +60,8 @@ export function AppHeader() {
             Help
           </Link>
 
-          <Header />
+          <ProfileMenu />
 
-{/*≈
-          <div className="relative" ref={dropdownRef}>
-            <button
-              className="flex items-center gap-3 px-4 py-2 bg-[#4A3359] rounded-lg hover:bg-[#5A4369] transition-colors"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            >
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-[#4A3359]" />
-              </div>
-              <span className="text-white font-medium">John Smith</span>
-              {isDropdownOpen ? (
-                <ChevronUp className="w-5 h-5 text-white" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-white" />
-              )}
-            </button>
-
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  onClick={() => setIsDropdownOpen(false)}
-                >
-                  <User className="w-4 h-4" />
-                  Profile
-                </Link>
-                <button
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  onClick={() => {
-                    setIsDropdownOpen(false)
-                    console.log("Logout clicked")
-                  }}
-                >
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-                */}
         </nav>
       </div>
     </header>

@@ -12,6 +12,7 @@
     "@auth0/auth0-react": "^2.11.0",
     "@auth0/nextjs-auth0": "^4.14.0",
     "@hookform/resolvers": "^3.10.0",
+    "@iframe-resizer/react": "^5.5.8",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "1.1.1",

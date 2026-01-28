@@ -255,6 +255,11 @@
     "@babel/plugin-transform-modules-commonjs" "^7.27.1"
     "@babel/plugin-transform-typescript" "^7.28.5"
 
+"@babel/runtime@^7.28.6":
+  version "7.28.6"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.28.6.tgz#d267a43cb1836dc4d182cce93ae75ba954ef6d2b"
+  integrity sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==
+
 "@babel/runtime@^7.5.5", "@babel/runtime@^7.8.7":
   version "7.28.4"
   resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.28.4.tgz#a70226016fabe25c5783b2f22d3e1c9bc5ca3326"
@@ -378,6 +383,22 @@
   version "3.10.0"
   resolved "https://registry.yarnpkg.com/@hookform/resolvers/-/resolvers-3.10.0.tgz#7bfd18113daca4e57e27e1205b7d5a2d371aa59a"
   integrity sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag==
+
+"@iframe-resizer/core@5.5.8":
+  version "5.5.8"
+  resolved "https://registry.yarnpkg.com/@iframe-resizer/core/-/core-5.5.8.tgz#c5c72e12434233d02b6b065aeb97a1a0ed25662a"
+  integrity sha512-sdrZjri7PhR+OumTegeuELG7vNP6BmwDliokXxTCMtzzCZQ/fDxGEvFpe407jSoatv2EU/m4FU/4XXV8lfiLxw==
+  dependencies:
+    auto-console-group "1.3.0"
+
+"@iframe-resizer/react@^5.5.8":
+  version "5.5.8"
+  resolved "https://registry.yarnpkg.com/@iframe-resizer/react/-/react-5.5.8.tgz#48d38e9c5475b8e66797fdf72cac428076a83cfc"
+  integrity sha512-goATFJHqBezauk/u3nh6X1uuB52Q9FdqG/mCQHv4hbQBXjpt7XfTXp9rRKXjViBogfYfQrUKZt3brwsS6wuirg==
+  dependencies:
+    "@babel/runtime" "^7.28.6"
+    "@iframe-resizer/core" "5.5.8"
+    auto-console-group "1.3.0"
 
 "@img/colour@^1.0.0":
   version "1.0.0"
@@ -1931,6 +1952,11 @@ auth0-password-policies@^1.0.2:
   integrity sha512-W/4Eljo1EeHdvH0WuwmM5JBBb7nVnCyPwZPsMwKgGIu8EOiSAoVjMLFlWA6Pem1lsAFgeQ1nXWfUrNhPR71aLQ==
   dependencies:
     password-sheriff "^1.1.0"
+
+auto-console-group@1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/auto-console-group/-/auto-console-group-1.3.0.tgz#21870bad097192b5950f10a3bdf6054c74971934"
+  integrity sha512-W/G5jy1ZPeVYPyqOVGND7EjbzrsLgRD3s+1QegXfJ7bYlphFxjqG60rviFXWw0d2YCj0Clc7hU5/nTqrBEhBIw==
 
 autoprefixer@^10.4.20:
   version "10.4.23"

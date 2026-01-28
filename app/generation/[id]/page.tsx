@@ -13,50 +13,50 @@ import {
   Loader2, 
   Target, 
   Link as LinkIcon, 
-  Code 
+  Code,
+  ArrowUp
 } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/shared/app-header";
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 import { getAuthToken } from "@/lib/get-auth-token";
-import { getProjectById, type ProjectDetail, type ProjectVideo } from "@/services/get-project-by-id";
-import { getProjectDeliverables, type ProjectArtifact } from "@/services/deliverables/get-deliverables-by-project-id";
+import { getProjectById } from "@/services/get-project-by-id";
+import { getProjectDeliverables } from "@/services/deliverables/get-deliverables-by-project-id";
 import { DeliverableCard } from "./components/deliverable-card";
 
 export default function GenerationPage() {
   const params = useParams();
   const projectId = params.id as string;
-  const [projectData, setProjectData] = useState<ProjectDetail | null>(null);
-  const [videoData, setVideoData] = useState<ProjectVideo | null>(null);
-  const [deliverables, setDeliverables] = useState<ProjectArtifact[]>([]);
+  const [projectData, setProjectData] = useState<any>(null);
+  const [videoData, setVideoData] = useState<any>(null);
+  const [deliverables, setDeliverables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("video-preview");
+  const [showBackTop, setShowBackTop] = useState(false);
 
-  // --- LÓGICA DE SCROLL SPY ---
+  // --- LÓGICA DE SCROLL (Botón Back to Top y Scroll Spy) ---
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackTop(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   useEffect(() => {
     if (loading) return;
-
-    const options = {
-      root: null,
-      rootMargin: "-20% 0px -70% 0px", // Precisión para iluminar el menú
-      threshold: 0,
-    };
-
-    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveSection(entry.target.id);
-        }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) setActiveSection(entry.target.id);
       });
-    };
+    }, { rootMargin: "-20% 0px -70% 0px" });
 
-    const observer = new IntersectionObserver(handleIntersect, options);
-    // Observamos tanto secciones como las tarjetas de entregables
-    const targets = document.querySelectorAll("section[id], div[id].deliverable-card-container");
-    targets.forEach((target) => observer.observe(target));
-
+    document.querySelectorAll("section[id], .deliverable-card-container").forEach(el => observer.observe(el));
     return () => observer.disconnect();
   }, [loading]);
 
+  // --- CARGA DE DATOS ---
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -65,10 +65,9 @@ export default function GenerationPage() {
           getProjectById(token!, projectId),
           getProjectDeliverables(token!, projectId)
         ]);
-        
         if (pRes.success) { 
           setProjectData(pRes.data); 
-          setVideoData(pRes.data?.videos?.[0] || null); 
+          setVideoData(pRes.data?.videos?.[0]); 
         }
         if (dRes.success) setDeliverables(dRes.data);
       } catch (error) {
@@ -110,7 +109,7 @@ export default function GenerationPage() {
       <div className="py-10 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* SIDEBAR NAVEGACIÓN */}
+          {/* SIDEBAR NAVEGACIÓN (Restaurado 4 columnas) */}
           <aside className="lg:col-span-4">
             <div className="sticky top-10 space-y-6">
               <div>
@@ -119,7 +118,9 @@ export default function GenerationPage() {
                   <span className="font-semibold text-sm">Dashboard</span>
                 </Link>
                 <h2 className="text-[28px] font-bold text-[#1a2b4b] leading-tight mb-2">Project Assets</h2>
-                <p className="text-gray-500 text-sm">Review and implement your generated content.</p>
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  Review and implement your generated content to dominate search results.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -137,7 +138,7 @@ export default function GenerationPage() {
                     onClick={() => scrollToSection(item.id)}
                     className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 text-left ${
                       activeSection === item.id 
-                        ? "bg-[#080936] text-white shadow-xl scale-[1.02]" 
+                        ? "bg-[#080936] text-white shadow-xl scale-[1.02] border-[#080936]" 
                         : "bg-white border border-gray-100 text-[#5b4fd7] hover:border-indigo-200"
                     }`}
                   >
@@ -149,24 +150,24 @@ export default function GenerationPage() {
             </div>
           </aside>
 
-          {/* CONTENIDO PRINCIPAL */}
+          {/* CONTENIDO PRINCIPAL (Restaurado 8 columnas) */}
           <main className="lg:col-span-8 space-y-12">
             
-            {/* VIDEO SECTION */}
+            {/* VIDEO SECTION - Full Width Container */}
             <section id="video-preview" className="scroll-mt-10">
-              <h1 className="text-2xl font-bold text-[#080936] mb-6 flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-[#080936] mb-6 flex items-center gap-3 uppercase tracking-tight">
                 <span className="w-2 h-8 bg-indigo-600 rounded-full" />
                 {projectData?.projectName}
               </h1>
-              <div className="aspect-video rounded-[32px] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10">
+              <div className="w-full aspect-video rounded-[32px] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10">
                 <div 
-                  className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full" 
+                  className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full border-none" 
                   dangerouslySetInnerHTML={{ __html: videoData?.metaData?.embed || "" }} 
                 />
               </div>
             </section>
 
-            {/* ENTREGABLES MODULARES */}
+            {/* ENTREGABLES */}
             <div id="urls-script" className="deliverable-card-container scroll-mt-10">
               <DeliverableCard 
                 title="Direct Links & Scripts" 
@@ -221,10 +222,24 @@ export default function GenerationPage() {
                 html={getDeliverableContent("KEYWORD_RESEARCH_HTML")} 
               />
             </div>
-
           </main>
         </div>
       </div>
+
+      {/* BACK TO TOP BUTTON (Con Z-index máximo) */}
+      <AnimatePresence>
+        {showBackTop && (
+          <motion.button 
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="fixed bottom-8 right-8 w-14 h-14 bg-[#080936] text-white rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(0,0,0,0.3)] z-[9999] hover:bg-indigo-600 transition-colors border border-white/10"
+          >
+            <ArrowUp className="w-6 h-6" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

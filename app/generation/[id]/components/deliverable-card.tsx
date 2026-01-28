@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, ChevronDown, ChevronUp, Copy, Check } from "lucide-react";
+import { Download, Copy, Check, Plus, Minus } from "lucide-react";
 import { HTMLViewer } from "./html-viewer";
 import { LinkGroup } from "./link-group";
 import { motion, AnimatePresence } from "framer-motion";
@@ -54,40 +54,71 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
         </div>
         
         <div className="flex items-center gap-2">
-          {/* BOTONES DE ACCIÓN (Copy & Download) */}
+          {/* BOTONES DE ACCIÓN */}
           {(html || code) && (
-            <div className="flex items-center bg-gray-50 rounded-lg p-1 mr-2 border border-gray-100">
+            <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-100">
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={handleMainCopy} 
-                className="h-8 px-3 text-gray-500 hover:text-indigo-600 gap-2"
-                title="Copy content"
+                title={isCopied ? "¡Copiado!" : "Copiar contenido"}
+                className={`h-9 px-4 rounded-lg gap-2 cursor-pointer transition-all duration-300 ${
+                  isCopied 
+                  ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" 
+                  : "text-gray-500 hover:text-indigo-600 hover:bg-white"
+                }`}
               >
-                {isCopied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                <span className="text-[10px] font-bold uppercase">Copy</span>
+                {isCopied ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span className="text-[10px] font-bold uppercase tracking-tighter">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span className="text-[10px] font-bold uppercase tracking-tighter">Copy</span>
+                  </>
+                )}
               </Button>
-              <div className="w-[1px] h-4 bg-gray-200" />
+
+              <div className="w-[1px] h-4 bg-gray-200 mx-1" />
+
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={handleDownload} 
-                className="h-8 px-3 text-gray-500 hover:text-indigo-600 gap-2"
-                title="Download file"
+                title="Descargar archivo"
+                className="h-9 px-4 text-gray-500 hover:text-indigo-600 hover:bg-white cursor-pointer rounded-lg gap-2 transition-all"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-bold uppercase">Download</span>
+                <Download className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase tracking-tighter">Download</span>
               </Button>
             </div>
           )}
           
+          {/* BOTÓN COLAPSO DINÁMICO (+ / -) */}
           <Button 
             variant="ghost" 
-            size="sm" 
+            size="icon" 
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-[#080936] bg-gray-100 hover:bg-gray-200 text-[10px] font-bold gap-2 px-4 rounded-lg h-10 border border-gray-100 transition-colors"
+            title={isExpanded ? "Contraer sección" : "Expandir sección"}
+            className={`h-10 w-10 rounded-xl border border-gray-100 cursor-pointer transition-all duration-300 ${
+              isExpanded 
+              ? "bg-[#080936] text-white hover:bg-[#15175a]" 
+              : "bg-white text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100"
+            }`}
           >
-            {isExpanded ? <><ChevronUp className="w-4 h-4" /> CONTRACT</> : <><ChevronDown className="w-4 h-4" /> EXPAND</>}
+            <motion.div
+              initial={false}
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {isExpanded ? (
+                <Minus className="w-5 h-5 text-white" /> // Siempre blanco cuando el fondo es oscuro
+              ) : (
+                <Plus className="w-5 h-5" />
+              )}
+            </motion.div>
           </Button>
         </div>
       </div>
@@ -99,7 +130,7 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            transition={{ duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] }}
           >
             <div className="bg-white border-t border-gray-50">
               {links && <LinkGroup links={links} />}

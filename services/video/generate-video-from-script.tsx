@@ -20,6 +20,8 @@ export interface GenerateVideoFromScriptRequest {
   position?: string
   size?: string
   trainingType?: string
+  keywords?: string
+  targetAudience?: string
   options?: GenerateVideoFromScriptOptions
 }
 

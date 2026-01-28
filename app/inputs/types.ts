@@ -14,8 +14,8 @@ export interface VideoCreatorState {
   videoSize: string
   primaryFocus: "files" | "urls"
   topic: string
-  keywordPhrases: string
-  audience: string
+  keywords: string
+  targetAudience: string
   generating: boolean
   prompting: boolean
   error: string
@@ -28,7 +28,7 @@ export interface VideoCreatorState {
   projectId: string
   projectError: string
   checkingProject: boolean
-  targetAudience: string[]
+  trainingType: string
   customAudience: string
   customAudienceOptions: string[]
 }
