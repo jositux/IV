@@ -306,7 +306,7 @@ export default function Dashboard() {
                               ) : isFailed && canRebuild ? (
                                 <Button onClick={() => handleRebuild(video.tavusVideoId, video.projectId!)} className="w-full h-10 bg-[#6D58BB] text-white rounded-[20px] gap-2"><RefreshCw className="w-3.5 h-3.5" /> Rebuild Video</Button>
                               ) : isFailed && !canRebuild ? (
-                                <Link href="/credits" className="w-full">
+                                <Link href="/pricing" className="w-full">
                                   <Button className="w-full h-10 bg-red-600 text-white rounded-[20px] gap-2">
                                     <CreditCard className="w-3.5 h-3.5" /> Buy Credits
                                   </Button>
