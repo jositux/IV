@@ -8,7 +8,9 @@ export default function LoginAuthPage() {
   const { isLoading, isAuthenticated } = useAuth0()
 
   useEffect(() => {
-    if (!isAuthenticated && !isLoading) {
+    if (isLoading) return
+
+    if (!isAuthenticated) {
       const auth0Domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN!
       const clientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID!
       const redirectUri = process.env.NEXT_PUBLIC_AUTH0_REDIRECT_URI || `${window.location.origin}/callback`
@@ -22,11 +24,15 @@ export default function LoginAuthPage() {
       authUrl.searchParams.append("audience", audience)
       authUrl.searchParams.append("state", Math.random().toString(36).substring(7))
 
-      // Redirigir a Auth0
-      window.location.href = authUrl.toString()
+      // --- CAMBIO CLAVE AQUÍ ---
+      // replace() sustituye la URL actual en el historial. 
+      // Al volver atrás, esta página ya no existirá en la pila.
+      window.location.replace(authUrl.toString())
     }
+
     if (isAuthenticated) {
-      window.location.href = "/dashboard"
+      // También aquí, para que no puedan volver al "Redirecting..." desde el Dashboard
+      window.location.replace("/dashboard")
     }
   }, [isAuthenticated, isLoading])
 
