@@ -9,3 +9,5 @@ const nextConfig = {
   },
 };
 export default nextConfig;
+
+//https://aivideosolnar.majomaken.dev
