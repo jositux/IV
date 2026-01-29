@@ -52,11 +52,26 @@ function VideoCard({ video: initialVideo, token, getProjectName, rebuildingIds, 
             <Link href={`/generation/${video.projectId}/`}><h2 className="text-2xl text-[#272830] font-medium truncate">{getProjectName(video.projectId) || "Untitled Project"}</h2></Link>
             <p className="text-sm text-[#272830] line-clamp-1 min-h-[40px] italic">"{video.prompt?.replace(/<[^>]*>?/gm, "")}"</p>
             <div className="flex items-center justify-between pt-3 border-t">
-              <div className="flex gap-2">
-                <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-[10px] font-bold uppercase"><Clock className="w-3 h-3 inline mr-1" />{video.duration || 0} sec</span>
-                <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded text-[10px] font-bold uppercase"><CreditCard className="w-3 h-3 inline mr-1" />{video.creditsCharged || 0} credits</span>
-              </div>
-            </div>
+  <div className="flex gap-2">
+    <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider">
+      <Clock className="w-3 h-3 inline mr-1" />
+      {video.duration || 0} sec
+    </span>
+    <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wider">
+      <CreditCard className="w-3 h-3 inline mr-1" />
+      {video.creditsCharged || 0} credits
+    </span>
+  </div>
+  
+  {/* Sección de Fecha añadida */}
+  <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter flex items-center">
+    {video.createdAt ? new Date(video.createdAt).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }) : 'No date'}
+  </div>
+</div>
             <div className="pt-3">
               {isCurrentlyRebuilding || isProcessing ? (
                 <Button disabled className="w-full h-10 bg-blue-50 text-blue-600 rounded-[20px] gap-2 border-none">
