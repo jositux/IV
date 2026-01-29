@@ -3,7 +3,7 @@ const nextConfig = {
     return [
       {
         source: "/gateway/:path*", // Cambiamos 'proxy-api' por 'gateway'
-        destination: "https://aivideosolnar.majomaken.dev/api/:path*",
+        destination: "https://api-staging.intelligentvideos.ai/api/:path*",
       },
     ];
   },
