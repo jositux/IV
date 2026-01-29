@@ -166,10 +166,23 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#F6F6F6] p-4">
       <AppHeader />
       <main className="mx-auto py-16">
-        <h1 className="mb-8 text-5xl font-medium text-[#080936]">Dashboard</h1>
-        
+      <div className="flex items-center justify-between mb-8">
+  <h1 className="text-5xl font-medium text-[#080936]">
+    Dashboard
+  </h1>
+
+  <Link href="/inputs">
+    <Button
+      size="lg"
+      className="rounded-xl bg-[#6D58BB] px-6 py-6 text-lg font-semibold text-white hover:bg-gray-900 cursor-pointer"
+    >
+      Create new project <ArrowRight className="ml-2 h-5 w-5" />
+    </Button>
+  </Link>
+</div>
+
         {/* STATS */}
-        <div className="mb-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Total videos", value: videoCount, icon: Video },
             { label: "Available Credits", value: currentBalance, icon: CreditCard },
@@ -177,7 +190,7 @@ export default function Dashboard() {
             { label: "Landing Pages", value: 0, icon: Monitor },
           ].map((stat) => (
             <Card key={stat.label} className="border-1 bg-white shadow-none border-gray-200">
-              <CardContent className="px-6 py-6 flex flex-col justify-center">
+              <CardContent className="px-6 py-0 flex flex-col justify-center">
                 <div className="mb-2 flex items-center justify-between"><p className="text-sm text-gray-600">{stat.label}</p><stat.icon className="h-5 w-5 text-gray-900" /></div>
                 <p className="text-4xl font-bold text-gray-900">{stat.value}</p>
               </CardContent>
@@ -208,20 +221,46 @@ export default function Dashboard() {
             
             <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-12 text-center bg-white rounded-[20px] mt-16 border border-gray-100">
               <h2 className="mb-4 text-5xl font-medium text-[#080936]">Create More Videos</h2>
-              <Link href="/inputs"><Button size="lg" className="rounded-xl bg-[#6D58BB] px-8 py-6 text-white hover:bg-gray-900">Go to create <ArrowRight className="ml-2 h-5 w-5" /></Button></Link>
+              <p className="mb-4 text-[#3E4462]">PDFs, Word docs, and Web pages are ≈ 400 words each</p>
+              <Link href="/inputs">
+                <Button size="lg" className="rounded-xl bg-[#6D58BB] px-6 py-6 text-lg font-semibold text-white hover:bg-gray-900 cursor-pointer">
+                  Go to create <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
             </CardContent>
           </>
         )}
       </main>
 
       <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>
-        <DialogContent className="max-w-5xl p-0 bg-black overflow-hidden border-none ring-0">
-          <div className="relative aspect-video w-full">
-            <Button variant="ghost" size="icon" onClick={() => setIsVideoModalOpen(false)} className="absolute top-4 right-4 z-[110] bg-white/10 text-white rounded-full"><X className="h-6 w-6" /></Button>
-            {selectedVideo && <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: selectedVideo.embed || (selectedVideo as any).metaData?.embed || "" }} />}
-          </div>
-        </DialogContent>
-      </Dialog>
+  <DialogContent className="max-w-5xl p-0 bg-black overflow-hidden border-none ring-0 sm:rounded-2xl">
+    <DialogHeader className="sr-only">
+      <DialogTitle>Video Player</DialogTitle>
+    </DialogHeader>
+    
+    <div className="relative aspect-video w-full flex items-center justify-center bg-black">
+      {/* Botón de cerrar con mejor contraste y posición */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={() => setIsVideoModalOpen(false)} 
+        className="absolute top-3 right-3 z-[110] bg-black/100 hover:bg-black/80 text-white rounded-full backdrop-blur-sm transition-colors"
+      >
+        <X className="h-6 w-6" />
+      </Button>
+
+      {selectedVideo && (
+        <div 
+          className="w-full h-full flex items-center justify-center 
+                     [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:object-contain" 
+          dangerouslySetInnerHTML={{ 
+            __html: selectedVideo.embed || (selectedVideo as any).metaData?.embed || "" 
+          }} 
+        />
+      )}
+    </div>
+  </DialogContent>
+</Dialog>
       <AppFooter />
     </div>
   );
