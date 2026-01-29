@@ -14,7 +14,10 @@ import {
   Target, 
   Link as LinkIcon, 
   Code,
-  ArrowUp
+  ArrowUp,
+  Files,
+  Layout,
+  MousePointer2
 } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/shared/app-header";
@@ -35,7 +38,6 @@ export default function GenerationPage() {
   const [activeSection, setActiveSection] = useState("video-preview");
   const [showBackTop, setShowBackTop] = useState(false);
 
-  // --- LÓGICA DE SCROLL (Botón Back to Top y Scroll Spy) ---
   useEffect(() => {
     const handleScroll = () => {
       setShowBackTop(window.scrollY > 400);
@@ -56,7 +58,6 @@ export default function GenerationPage() {
     return () => observer.disconnect();
   }, [loading]);
 
-  // --- CARGA DE DATOS ---
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -103,57 +104,60 @@ export default function GenerationPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 bg-[#F8F9FB]">
+    <div className="min-h-screen p-4 bg-white">
       <AppHeader />
       
       <div className="py-10 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* SIDEBAR NAVEGACIÓN (Restaurado 4 columnas) */}
+          {/* SIDEBAR NAVEGACIÓN (Diseño según imagen) */}
           <aside className="lg:col-span-4">
-            <div className="sticky top-10 space-y-6">
-              <div>
+            <div className="sticky top-10 space-y-4">
+              <div className="mb-8">
                 <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 mb-6 transition-colors group">
                   <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
                   <span className="font-semibold text-sm">Dashboard</span>
                 </Link>
-                <h2 className="text-[28px] font-bold text-[#1a2b4b] leading-tight mb-2">Project Assets</h2>
-                <p className="text-gray-500 text-sm leading-relaxed">
-                  Review and implement your generated content to dominate search results.
+                <h1 className="text-[36px] font-bold text-[#1e2a4a] leading-tight mb-4">Your Complete Project Deliverables</h1>
+                <p className="text-gray-600 text-[18px] leading-snug">
+                  Everything you need to deploy and optimize your video for maximum AI search visibility
                 </p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {[
-                  { id: "video-preview", icon: Play, label: "Main Video" },
-                  { id: "urls-script", icon: FileCode, label: "Links & Embeds" },
-                  { id: "geo-analysis", icon: Sparkles, label: "GEO Strategy" },
-                  { id: "add-website", icon: BookOpen, label: "Guide & Steps" },
-                  { id: "sticky-action", icon: MonitorPlay, label: "Sticky Player" },
-                  { id: "seo-package", icon: Wrench, label: "SEO Metadata" },
-                  { id: "keyword-analysis", icon: Search, label: "Keyword Research" },
+                  { id: "video-preview", icon: Play, label: "Your Video", desc: "" },
+                  { id: "urls-script", icon: Files, label: "Video URLs, Embed Codes, Video Script Copy", desc: "Instant access to your video files, universal embed codes, and complete transcript for seamless deployment" },
+                  { id: "geo-analysis", icon: Sparkles, label: "How Your Video Content Is Engineered for AI Search Dominance", desc: "Personalized GEO analysis of YOUR video's dominance across ChatGPT, Perplexity, Claude, Gemini & Google AI - complete breakdown of how you achieve all 8 advanced GEO optimizations" },
+                  { id: "add-website", icon: BookOpen, label: "How to Add Your Sticky Video to Your Website - All Platforms", desc: "Works on WordPress, Shopify, Wix, Squarespace, Webflow, React/Vue, Custom HTML & all platforms" },
+                  { id: "sticky-action", icon: MonitorPlay, label: "See Your Sticky Video in Action", desc: "" },
+                  { id: "copy-sticky", icon: MousePointer2, label: "Copy your sticky video to place on your website", desc: "" },
+                  { id: "seo-package", icon: Wrench, label: "GEO & SEO Optimization Package", desc: "Schema markup, meta tags & technical code to maximize AI search visibility" },
+                  { id: "keyword-analysis", icon: Search, label: "Keyword Research & Content Gap Analysis", desc: "" },
                 ].map((item) => (
                   <button 
                     key={item.id}
                     onClick={() => scrollToSection(item.id)}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 text-left ${
+                    className={`w-full flex items-start gap-4 p-5 rounded-xl transition-all duration-200 text-left border ${
                       activeSection === item.id 
-                        ? "bg-[#080936] text-white shadow-xl scale-[1.02] border-[#080936]" 
-                        : "bg-white border border-gray-100 text-[#5b4fd7] hover:border-indigo-200"
+                        ? "bg-white border-indigo-400 shadow-sm" 
+                        : "bg-white border-gray-100 hover:border-gray-200"
                     }`}
                   >
-                    <item.icon className={`w-5 h-5 shrink-0 ${activeSection === item.id ? "text-white" : "text-indigo-500"}`} />
-                    <span className="text-[15px] font-bold tracking-tight">{item.label}</span>
+                    <item.icon className="w-6 h-6 shrink-0 text-black mt-1" />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[17px] font-semibold text-[#5c5fb1] leading-tight">{item.label}</span>
+                      {item.desc && <span className="text-[14px] text-gray-500 leading-tight">{item.desc}</span>}
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
           </aside>
 
-          {/* CONTENIDO PRINCIPAL (Restaurado 8 columnas) */}
+          {/* CONTENIDO PRINCIPAL (8 columnas) */}
           <main className="lg:col-span-8 space-y-12">
             
-            {/* VIDEO SECTION - Full Width Container */}
             <section id="video-preview" className="scroll-mt-10">
               <h1 className="text-2xl font-bold text-[#080936] mb-6 flex items-center gap-3 uppercase tracking-tight">
                 <span className="w-2 h-8 bg-indigo-600 rounded-full" />
@@ -167,7 +171,6 @@ export default function GenerationPage() {
               </div>
             </section>
 
-            {/* ENTREGABLES */}
             <div id="urls-script" className="deliverable-card-container scroll-mt-10">
               <DeliverableCard 
                 title="Direct Links & Scripts" 
@@ -226,7 +229,6 @@ export default function GenerationPage() {
         </div>
       </div>
 
-      {/* BACK TO TOP BUTTON (Con Z-index máximo) */}
       <AnimatePresence>
         {showBackTop && (
           <motion.button 
