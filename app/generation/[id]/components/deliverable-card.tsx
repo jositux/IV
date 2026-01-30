@@ -102,10 +102,10 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
             size="icon" 
             onClick={() => setIsExpanded(!isExpanded)}
             title={isExpanded ? "Contraer sección" : "Expandir sección"}
-            className={`h-10 w-10 rounded-xl border border-gray-100 cursor-pointer transition-all duration-300 ${
+            className={`h-10 w-10 rounded-3xl border border-gray-100 cursor-pointer transition-all duration-300 ${
               isExpanded 
               ? "bg-[#080936] text-white hover:bg-[#15175a]" 
-              : "bg-white text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100"
+              : "bg-[#080936] text-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100"
             }`}
           >
             <motion.div
