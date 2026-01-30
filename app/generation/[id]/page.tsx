@@ -113,45 +113,66 @@ export default function GenerationPage() {
           {/* SIDEBAR NAVEGACIÓN (Diseño según imagen) */}
           <aside className="lg:col-span-4">
             <div className="sticky top-10 space-y-4">
-              <div className="mb-8">
+              <div className="mb-4">
                 <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 mb-6 transition-colors group">
                   <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
-                  <span className="font-semibold text-sm">Dashboard</span>
+                  <span className="font-semibold text-sm text-[#6D58BB]">Dashboard</span>
                 </Link>
-                <h1 className="text-[36px] font-bold text-[#1e2a4a] leading-tight mb-4">Your Complete Project Deliverables</h1>
-                <p className="text-gray-600 text-[18px] leading-snug">
+                <h1 className="text-[24px] font-semibold text-[#1e2a4a] leading-tight mb-0">Your Complete Project Deliverables</h1>
+                <p className="text-gray-600 text-[16px] leading-snug">
                   Everything you need to deploy and optimize your video for maximum AI search visibility
                 </p>
               </div>
 
               <div className="space-y-3">
-                {[
-                  { id: "video-preview", icon: Play, label: "Your Video", desc: "" },
-                  { id: "urls-script", icon: Files, label: "Video URLs, Embed Codes, Video Script Copy", desc: "Instant access to your video files, universal embed codes, and complete transcript for seamless deployment" },
-                  { id: "geo-analysis", icon: Sparkles, label: "How Your Video Content Is Engineered for AI Search Dominance", desc: "Personalized GEO analysis of YOUR video's dominance across ChatGPT, Perplexity, Claude, Gemini & Google AI - complete breakdown of how you achieve all 8 advanced GEO optimizations" },
-                  { id: "add-website", icon: BookOpen, label: "How to Add Your Sticky Video to Your Website - All Platforms", desc: "Works on WordPress, Shopify, Wix, Squarespace, Webflow, React/Vue, Custom HTML & all platforms" },
-                  { id: "sticky-action", icon: MonitorPlay, label: "See Your Sticky Video in Action", desc: "" },
-                  { id: "copy-sticky", icon: MousePointer2, label: "Copy your sticky video to place on your website", desc: "" },
-                  { id: "seo-package", icon: Wrench, label: "GEO & SEO Optimization Package", desc: "Schema markup, meta tags & technical code to maximize AI search visibility" },
-                  { id: "keyword-analysis", icon: Search, label: "Keyword Research & Content Gap Analysis", desc: "" },
-                ].map((item) => (
-                  <button 
-                    key={item.id}
-                    onClick={() => scrollToSection(item.id)}
-                    className={`w-full flex items-start gap-4 p-5 rounded-xl transition-all duration-200 text-left border ${
-                      activeSection === item.id 
-                        ? "bg-white border-indigo-400 shadow-sm" 
-                        : "bg-white border-gray-100 hover:border-gray-200"
-                    }`}
-                  >
-                    <item.icon className="w-6 h-6 shrink-0 text-black mt-1" />
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[15px] font-semibold text-[#5c5fb1] leading-tight">{item.label}</span>
-                      {item.desc && <span className="text-[14px] text-gray-500 leading-tight">{item.desc}</span>}
-                    </div>
-                  </button>
-                ))}
-              </div>
+  {[
+    { id: "video-preview", icon: Play, label: "Your Video", desc: "" },
+    { id: "urls-script", icon: Files, label: "Video URLs, Embed Codes, Video Script Copy", desc: "Instant access to your video files, universal embed codes, and complete transcript for seamless deployment" },
+    { id: "geo-analysis", icon: Sparkles, label: "How Your Video Content Is Engineered for AI Search Dominance", desc: "Personalized GEO analysis of YOUR video's dominance across ChatGPT, Perplexity, Claude, Gemini & Google AI - complete breakdown of how you achieve all 8 advanced GEO optimizations" },
+    { id: "add-website", icon: BookOpen, label: "How to Add Your Sticky Video to Your Website - All Platforms", desc: "Works on WordPress, Shopify, Wix, Squarespace, Webflow, React/Vue, Custom HTML & all platforms" },
+    { id: "sticky-action", icon: MonitorPlay, label: "See Your Sticky Video in Action", desc: "" },
+    { id: "copy-sticky", icon: MousePointer2, label: "Copy your sticky video to place on your website", desc: "" },
+    { id: "seo-package", icon: Wrench, label: "GEO & SEO Optimization Package", desc: "Schema markup, meta tags & technical code to maximize AI search visibility" },
+    { id: "keyword-analysis", icon: Search, label: "Keyword Research & Content Gap Analysis", desc: "" },
+  ].map((item) => {
+    const hasDesc = item.desc?.trim();
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => scrollToSection(item.id)}
+        className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all duration-200 text-left border ${
+          activeSection === item.id
+            ? "bg-white border-indigo-400 shadow-sm"
+            : "bg-white border-gray-100 hover:border-gray-200"
+        }`}
+      >
+        {/* Ícono */}
+        <item.icon className="w-6 h-6 shrink-0 text-black mt-1" />
+
+        {/* Texto */}
+        <div
+          className={`flex flex-col gap-1 self-stretch ${
+            hasDesc ? "justify-start" : "justify-center"
+          }`}
+        >
+          <span className="text-[15px] font-regular text-[#6D58BB] leading-tight">
+            {item.label}
+          </span>
+
+          {hasDesc && (
+            <span className="text-[13px] text-gray-500 leading-tight">
+              {item.desc}
+            </span>
+          )}
+        </div>
+      </button>
+    );
+  })}
+</div>
+
+
+
             </div>
           </aside>
 
