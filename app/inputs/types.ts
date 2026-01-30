@@ -87,4 +87,4 @@ export const AUDIENCE_OPTIONS = [
   "Customer Service",
 ]
 
-export const MAX_WORDS = 20000
+export const MAX_WORDS = 400
