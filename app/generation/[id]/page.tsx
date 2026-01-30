@@ -146,7 +146,7 @@ export default function GenerationPage() {
                   >
                     <item.icon className="w-6 h-6 shrink-0 text-black mt-1" />
                     <div className="flex flex-col gap-1">
-                      <span className="text-[17px] font-semibold text-[#5c5fb1] leading-tight">{item.label}</span>
+                      <span className="text-[15px] font-semibold text-[#5c5fb1] leading-tight">{item.label}</span>
                       {item.desc && <span className="text-[14px] text-gray-500 leading-tight">{item.desc}</span>}
                     </div>
                   </button>
