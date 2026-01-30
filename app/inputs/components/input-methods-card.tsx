@@ -30,7 +30,7 @@ export function InputMethodsCard({
         {/* Topic Input */}
         <div className="bg-white rounded-[20px] border border-[#DADADA] px-4 py-4 flex flex-col justify-between">
           <div>
-            <Label className="text-2xl text-[#272830] font-normal mb-2 block">Enter Topic</Label>
+            <Label className="text-2xl text-[#272830] font-normal mb-2 block">Enter Topic *</Label>
             <Textarea 
               value={topic} 
               onChange={(e) => onTopicChange(e.target.value)} 
@@ -46,7 +46,7 @@ export function InputMethodsCard({
         {/* Keywords Input */}
         <div className="bg-white rounded-[20px] border border-[#DADADA] px-4 py-4 flex flex-col justify-between">
           <div>
-            <Label className="text-2xl text-[#272830] font-normal mb-2 block">Keywords</Label>
+            <Label className="text-2xl text-[#272830] font-normal mb-2 block">Keywords (Optional)</Label>
             <Textarea 
               value={keywords} 
               onChange={(e) => onKeywordsChange(e.target.value)} 
@@ -62,7 +62,7 @@ export function InputMethodsCard({
         {/* Target Audience Input */}
         <div className="bg-white rounded-[20px] border border-[#DADADA] px-4 py-4 flex flex-col justify-between">
           <div>
-            <Label className="text-2xl text-[#272830] font-normal mb-2 block">Target Audience</Label>
+            <Label className="text-2xl text-[#272830] font-normal mb-2 block">Target Audience (Optional)</Label>
             <Textarea 
               value={targetAudience} 
               onChange={(e) => onTargetAudienceChange(e.target.value)} 

@@ -73,13 +73,31 @@ export function FileUploadCard({
     }
   }, [newUrl, urls, onUrlsChange, onNewUrlChange])
 
+  // Handler to filter files specifically for .doc and .docx
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files)
+      const validFiles = selectedFiles.filter(file => 
+        file.name.toLowerCase().endsWith('.doc') || 
+        file.name.toLowerCase().endsWith('.docx')
+      )
+      
+      if (validFiles.length > 0) {
+        onFilesChange([...files, ...validFiles])
+      }
+      
+      // Reset input value so the same file can be uploaded again if deleted
+      e.target.value = ""
+    }
+  }
+
   return (
     <Card className="p-0 shadow-none border-0 bg-transparent">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
         
         {/* SECCIÓN DOCUMENTOS */}
         <div className="bg-white rounded-[24px] border border-[#DADADA] p-6 shadow-sm flex flex-col h-full">
-          <Label className="text-xl text-[#272830] font-semibold mb-4 block">Documents</Label>
+        <Label className="text-2xl text-[#272830] font-normal mb-2 block">Documents (Optional)</Label>
           
           <div
             onClick={() => document.getElementById("file-upload-v2")?.click()}
@@ -87,7 +105,16 @@ export function FileUploadCard({
           >
             <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
             <p className="text-xs text-gray-500 font-medium">Drag & drop or click to browse</p>
-            <input id="file-upload-v2" type="file" multiple className="hidden" onChange={(e) => e.target.files && onFilesChange([...files, ...Array.from(e.target.files)])} />
+            <p className="text-[10px] text-[#6D58BB] mt-1 font-semibold uppercase tracking-wider">Only .doc, .docx</p>
+            
+            <input 
+              id="file-upload-v2" 
+              type="file" 
+              multiple 
+              className="hidden" 
+              accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={handleFileChange} 
+            />
           </div>
 
           <div className="flex-1 space-y-2 overflow-y-auto max-h-[120px] mb-2 pr-1">
@@ -97,7 +124,12 @@ export function FileUploadCard({
                   <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span className="text-xs text-gray-600 truncate font-medium">{file.name}</span>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => onFilesChange(files.filter((_:any, idx:any) => idx !== i))} className="h-7 w-7 p-0 text-gray-400 hover:text-red-500">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => onFilesChange(files.filter((_:any, idx:any) => idx !== i))} 
+                  className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -108,13 +140,13 @@ export function FileUploadCard({
             selected={primaryFocus === "files"}
             onClick={() => onPrimaryFocusChange("files")}
             title="Set these files as Primary Focus"
-            description="Example: If the PDF(s) you enter is about training, you may want to select 'Primary Focus' to ensure the training closely follows the PDF(s)"
+            description="Example: If the Word doc(s) you enter is about training, you may want to select 'Primary Focus' to ensure the training closely follows them."
           />
         </div>
 
         {/* SECCIÓN URLS */}
         <div className="bg-white rounded-[24px] border border-[#DADADA] p-6 shadow-sm flex flex-col h-full">
-          <Label className="text-xl text-[#272830] font-semibold mb-4 block">Web URLs</Label>
+        <Label className="text-2xl text-[#272830] font-normal mb-2 block">Web URLs (Optional)</Label>
           
           <div className="flex gap-2 mb-4">
             <Input

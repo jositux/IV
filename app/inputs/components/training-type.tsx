@@ -5,7 +5,13 @@ import { Input } from "@/components/ui/input"
 import { Send } from "lucide-react"
 
 // Puedes importar esto de tu archivo de constantes o definirlo aquí
-const TRAINING_OPTIONS = ["Educational", "Sales", "Corporate", "Onboarding", "Marketing"];
+const TRAINING_OPTIONS = ["Compliance & Safety",
+"Sales Enablement",
+"Employee Orientation",
+"Marketing & Product",
+"Learning & Development",
+"Internal Communications",
+"Customer Service",];
 
 interface TrainingTypeCardProps {
   trainingType: string 

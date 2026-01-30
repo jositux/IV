@@ -3,11 +3,9 @@
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-// Importamos useEffect y useState para evitar errores de hidratación
 import { useEffect, useState } from "react"
 
 export function AppFooter() {
-  // Inicializamos con el año 2026 por defecto (o el año actual del sistema)
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
 
   useEffect(() => {
@@ -37,27 +35,38 @@ export function AppFooter() {
           
           {/* Copyright y Links Legales */}
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-sm text-gray-400">
-            {/* AQUÍ EL AÑO DINÁMICO */}
             <p>© {currentYear} Intelligent Videos. All rights reserved.</p>
             
             <div className="flex gap-6">
-              <a href="#" className="hover:text-white transition-colors">Legal Notice</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-white transition-colors">Privacy</a>
+              <Link href="/legal" className="hover:text-white transition-colors">
+                Legal Notice
+              </Link>
+              <Link href="/terms" className="hover:text-white transition-colors">
+                Terms of Service
+              </Link>
+              <Link href="/privacy" className="hover:text-white transition-colors">
+                Privacy
+              </Link>
             </div>
           </div>
 
           {/* Iconos de Redes Sociales */}
           <div className="flex items-center gap-5 text-gray-400">
-            <a href="#" className="hover:text-white transition-colors"><Facebook size={20} /></a>
-            <a href="#" className="hover:text-white transition-colors"><Twitter size={20} /></a>
-            <a href="#" className="hover:text-white transition-colors"><Instagram size={20} /></a>
-            <a href="#" className="hover:text-white transition-colors"><Youtube size={20} /></a>
-            <a href="#" className="hover:text-white transition-colors">
-                <div className="w-5 h-5 border-2 border-current rounded-full flex items-center justify-center">
-                    <div className="w-1 h-1 bg-current rounded-full"></div>
-                </div>
-            </a>
+            <Link href="https://facebook.com" className="hover:text-white transition-colors">
+              <Facebook size={20} />
+            </Link>
+            <Link href="https://twitter.com" className="hover:text-white transition-colors">
+              <Twitter size={20} />
+            </Link>
+            <Link href="https://instagram.com" className="hover:text-white transition-colors">
+              <Instagram size={20} />
+            </Link>
+            <Link href="https://youtube.com" className="hover:text-white transition-colors">
+              <Youtube size={20} />
+            </Link>
+            <div className="w-5 h-5 border-2 border-current rounded-full flex items-center justify-center cursor-pointer hover:text-white transition-colors">
+              <div className="w-1 h-1 bg-current rounded-full"></div>
+            </div>
           </div>
         </div>
       </div>

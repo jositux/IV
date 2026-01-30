@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { 
   Play, 
@@ -17,7 +17,8 @@ import {
   ArrowUp,
   Files,
   Layout,
-  MousePointer2
+  MousePointer2,
+  RefreshCw
 } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/shared/app-header";
@@ -27,16 +28,33 @@ import { getAuthToken } from "@/lib/get-auth-token";
 import { getProjectById } from "@/services/get-project-by-id";
 import { getProjectDeliverables } from "@/services/deliverables/get-deliverables-by-project-id";
 import { DeliverableCard } from "./components/deliverable-card";
+import { useGeneration } from "@/context/generation-context"; // Importante para el tracking
 
 export default function GenerationPage() {
   const params = useParams();
   const projectId = params.id as string;
+  
+  // Acceso al estado global de generación
+  const { projects } = useGeneration();
+  const activeProject = projects[projectId];
+
   const [projectData, setProjectData] = useState<any>(null);
   const [videoData, setVideoData] = useState<any>(null);
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("video-preview");
   const [showBackTop, setShowBackTop] = useState(false);
+
+  // Función para refrescar entregables sin recargar toda la página
+  const refreshDeliverables = useCallback(async () => {
+    try {
+      const token = await getAuthToken();
+      const dRes = await getProjectDeliverables(token!, projectId);
+      if (dRes.success) setDeliverables(dRes.data);
+    } catch (error) {
+      console.error("Error refreshing deliverables:", error);
+    }
+  }, [projectId]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,6 +76,7 @@ export default function GenerationPage() {
     return () => observer.disconnect();
   }, [loading]);
 
+  // Carga inicial
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -80,10 +99,19 @@ export default function GenerationPage() {
     loadData();
   }, [projectId]);
 
+  // EFECTO CLAVE: Si el contexto detecta que terminó un nuevo asset, refrescamos la lista
+  useEffect(() => {
+    if (activeProject?.completedDeliverables?.length) {
+      refreshDeliverables();
+    }
+  }, [activeProject?.completedDeliverables?.length, refreshDeliverables]);
+
   const getDeliverableContent = (type: string) => {
     const item = deliverables.find(d => d.artifactType === type);
     return item?.contentBody?.replace(/<[^>]+_(BEGIN|END)>/g, "").trim() || null;
   };
+
+  const isAssetReady = (type: string) => deliverables.some(d => d.artifactType === type);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -103,6 +131,15 @@ export default function GenerationPage() {
     );
   }
 
+  // Componente interno para no repetir estilos de carga
+  const LoadingAsset = ({ title }: { title: string }) => (
+    <div className="w-full bg-white border border-dashed border-indigo-200 rounded-[32px] p-12 flex flex-col items-center justify-center text-center">
+      <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin mb-4" />
+      <h3 className="text-lg font-medium text-[#080936]">Generating {title}...</h3>
+      <p className="text-sm text-gray-400 italic">Our AI is finalizing your content</p>
+    </div>
+  );
+
   return (
     <div className="min-h-screen p-4 bg-white">
       <AppHeader />
@@ -110,7 +147,6 @@ export default function GenerationPage() {
       <div className="py-10 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           
-          {/* SIDEBAR NAVEGACIÓN (Diseño según imagen) */}
           <aside className="lg:col-span-4">
             <div className="sticky top-10 space-y-4">
               <div className="mb-4">
@@ -125,60 +161,40 @@ export default function GenerationPage() {
               </div>
 
               <div className="space-y-3">
-  {[
-    { id: "video-preview", icon: Play, label: "Your Video", desc: "" },
-    { id: "urls-script", icon: Files, label: "Video URLs, Embed Codes, Video Script Copy", desc: "Instant access to your video files, universal embed codes, and complete transcript for seamless deployment" },
-    { id: "geo-analysis", icon: Sparkles, label: "How Your Video Content Is Engineered for AI Search Dominance", desc: "Personalized GEO analysis of YOUR video's dominance across ChatGPT, Perplexity, Claude, Gemini & Google AI - complete breakdown of how you achieve all 8 advanced GEO optimizations" },
-    { id: "add-website", icon: BookOpen, label: "How to Add Your Sticky Video to Your Website - All Platforms", desc: "Works on WordPress, Shopify, Wix, Squarespace, Webflow, React/Vue, Custom HTML & all platforms" },
-    { id: "sticky-action", icon: MonitorPlay, label: "See Your Sticky Video in Action", desc: "" },
-    { id: "copy-sticky", icon: MousePointer2, label: "Copy your sticky video to place on your website", desc: "" },
-    { id: "seo-package", icon: Wrench, label: "GEO & SEO Optimization Package", desc: "Schema markup, meta tags & technical code to maximize AI search visibility" },
-    { id: "keyword-analysis", icon: Search, label: "Keyword Research & Content Gap Analysis", desc: "" },
-  ].map((item) => {
-    const hasDesc = item.desc?.trim();
-
-    return (
-      <button
-        key={item.id}
-        onClick={() => scrollToSection(item.id)}
-        className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all duration-200 text-left border ${
-          activeSection === item.id
-            ? "bg-white border-indigo-400 shadow-sm"
-            : "bg-white border-gray-100 hover:border-gray-200"
-        }`}
-      >
-        {/* Ícono */}
-        <item.icon className="w-6 h-6 shrink-0 text-black mt-1" />
-
-        {/* Texto */}
-        <div
-          className={`flex flex-col gap-1 self-stretch ${
-            hasDesc ? "justify-start" : "justify-center"
-          }`}
-        >
-          <span className="text-[15px] font-regular text-[#6D58BB] leading-tight">
-            {item.label}
-          </span>
-
-          {hasDesc && (
-            <span className="text-[13px] text-gray-500 leading-tight">
-              {item.desc}
-            </span>
-          )}
-        </div>
-      </button>
-    );
-  })}
-</div>
-
-
-
+                {[
+                  { id: "video-preview", icon: Play, label: "Your Video", desc: "" },
+                  { id: "urls-script", icon: Files, label: "Video URLs, Embed Codes, Video Script Copy", desc: "Instant access to your video files, universal embed codes, and complete transcript for seamless deployment" },
+                  { id: "geo-analysis", icon: Sparkles, label: "How Your Video Content Is Engineered for AI Search Dominance", desc: "Personalized GEO analysis of YOUR video's dominance across ChatGPT, Perplexity, Claude, Gemini & Google AI - complete breakdown of how you achieve all 8 advanced GEO optimizations" },
+                  { id: "add-website", icon: BookOpen, label: "How to Add Your Sticky Video to Your Website - All Platforms", desc: "Works on WordPress, Shopify, Wix, Squarespace, Webflow, React/Vue, Custom HTML & all platforms" },
+                  { id: "sticky-action", icon: MonitorPlay, label: "See Your Sticky Video in Action", desc: "" },
+                  { id: "copy-sticky", icon: MousePointer2, label: "Copy your sticky video to place on your website", desc: "" },
+                  { id: "seo-package", icon: Wrench, label: "GEO & SEO Optimization Package", desc: "Schema markup, meta tags & technical code to maximize AI search visibility" },
+                  { id: "keyword-analysis", icon: Search, label: "Keyword Research & Content Gap Analysis", desc: "" },
+                ].map((item) => {
+                  const hasDesc = item.desc?.trim();
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => scrollToSection(item.id)}
+                      className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all duration-200 text-left border ${
+                        activeSection === item.id
+                          ? "bg-white border-indigo-400 shadow-sm"
+                          : "bg-white border-gray-100 hover:border-gray-200"
+                      }`}
+                    >
+                      <item.icon className={`w-6 h-6 shrink-0 mt-1 ${activeSection === item.id ? "text-[#6D58BB]" : "text-black"}`} />
+                      <div className={`flex flex-col gap-1 self-stretch ${hasDesc ? "justify-start" : "justify-center"}`}>
+                        <span className="text-[15px] font-regular text-[#6D58BB] leading-tight">{item.label}</span>
+                        {hasDesc && <span className="text-[13px] text-gray-500 leading-tight">{item.desc}</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </aside>
 
-          {/* CONTENIDO PRINCIPAL (8 columnas) */}
           <main className="lg:col-span-8 space-y-12">
-            
             <section id="video-preview" className="scroll-mt-10">
               <h1 className="text-2xl font-bold text-[#080936] mb-6 flex items-center gap-3 uppercase tracking-tight">
                 <span className="w-2 h-8 bg-indigo-600 rounded-full" />
@@ -204,47 +220,43 @@ export default function GenerationPage() {
             </div>
 
             <div id="geo-analysis" className="deliverable-card-container scroll-mt-10">
-              <DeliverableCard 
-                title="GEO Optimization Strategy" 
-                icon={Sparkles} 
-                defaultExpanded={true} 
-                html={getDeliverableContent("GEO_OPTIMIZATION_REPORT_HTML")} 
-              />
+              {isAssetReady("GEO_OPTIMIZATION_REPORT_HTML") ? (
+                <DeliverableCard title="GEO Optimization Strategy" icon={Sparkles} defaultExpanded={true} html={getDeliverableContent("GEO_OPTIMIZATION_REPORT_HTML")} />
+              ) : (
+                <LoadingAsset title="GEO Optimization Report" />
+              )}
             </div>
 
             <div id="add-website" className="deliverable-card-container scroll-mt-10">
-              <DeliverableCard 
-                title="Customer Implementation Guide" 
-                icon={BookOpen} 
-                defaultExpanded={true} 
-                html={getDeliverableContent("CUSTOMER_INSTRUCTIONS_HTML")} 
-              />
+              {isAssetReady("CUSTOMER_INSTRUCTIONS_HTML") ? (
+                <DeliverableCard title="Customer Implementation Guide" icon={BookOpen} defaultExpanded={true} html={getDeliverableContent("CUSTOMER_INSTRUCTIONS_HTML")} />
+              ) : (
+                <LoadingAsset title="Implementation Guide" />
+              )}
             </div>
 
             <div id="sticky-action" className="deliverable-card-container scroll-mt-10">
-              <DeliverableCard 
-                title="Sticky Player Implementation" 
-                icon={MonitorPlay} 
-                code={getDeliverableContent("COMPLETE_HTML_CODE")} 
-              />
+              {isAssetReady("COMPLETE_HTML_CODE") ? (
+                <DeliverableCard title="Sticky Player Implementation" icon={MonitorPlay} code={getDeliverableContent("COMPLETE_HTML_CODE")} />
+              ) : (
+                <LoadingAsset title="Sticky Player Code" />
+              )}
             </div>
 
             <div id="seo-package" className="deliverable-card-container scroll-mt-10">
-              <DeliverableCard 
-                title="SEO Metadata Package" 
-                icon={Wrench} 
-                defaultExpanded={true} 
-                html={getDeliverableContent("SEO_GEO_OPTIMIZATION_PACKAGE_HTML")} 
-              />
+              {isAssetReady("SEO_GEO_OPTIMIZATION_PACKAGE_HTML") ? (
+                <DeliverableCard title="SEO Metadata Package" icon={Wrench} defaultExpanded={true} html={getDeliverableContent("SEO_GEO_OPTIMIZATION_PACKAGE_HTML")} />
+              ) : (
+                <LoadingAsset title="SEO Metadata" />
+              )}
             </div>
 
             <div id="keyword-analysis" className="deliverable-card-container scroll-mt-10">
-              <DeliverableCard 
-                title="Keyword Gap Analysis" 
-                icon={Target} 
-                defaultExpanded={true} 
-                html={getDeliverableContent("KEYWORD_RESEARCH_HTML")} 
-              />
+              {isAssetReady("KEYWORD_RESEARCH_HTML") ? (
+                <DeliverableCard title="Keyword Gap Analysis" icon={Target} defaultExpanded={true} html={getDeliverableContent("KEYWORD_RESEARCH_HTML")} />
+              ) : (
+                <LoadingAsset title="Keyword Gap Analysis" />
+              )}
             </div>
           </main>
         </div>
@@ -253,9 +265,7 @@ export default function GenerationPage() {
       <AnimatePresence>
         {showBackTop && (
           <motion.button 
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
+            initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="fixed bottom-8 right-8 w-14 h-14 bg-[#080936] text-white rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(0,0,0,0.3)] z-[9999] hover:bg-indigo-600 transition-colors border border-white/10"
           >

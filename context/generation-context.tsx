@@ -29,7 +29,7 @@ interface ProjectState {
   deliverableJobs: string[];
   completedDeliverables: string[];
   error: string | null;
-  // PERSISTENCIA DE DATOS DE ENTRADA
+  // PERSISTENCE OF INPUT DATA
   keywords?: string;
   targetAudience?: string;
 }
@@ -58,17 +58,21 @@ const GenerationContext = createContext<GenerationContextType | undefined>(undef
 export function GenerationProvider({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Record<string, ProjectState>>({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  // TRACKING: Stores the ID of the specific project that just finished to build the dynamic link
+  const [lastCompletedProjectId, setLastCompletedProjectId] = useState<string | null>(null);
 
+  // Load active projects from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem("active_generation_projects");
     if (saved) setProjects(JSON.parse(saved));
   }, []);
 
+  // Persist projects to localStorage whenever the state changes
   useEffect(() => {
     localStorage.setItem("active_generation_projects", JSON.stringify(projects));
   }, [projects]);
 
-  // Cleanup automático de proyectos finalizados tras 30s
+  // Automatic cleanup of finished or failed projects after 30 seconds
   useEffect(() => {
     const finishedIds = Object.values(projects)
       .filter(p => p.activeStep === "COMPLETED" || p.error !== null)
@@ -90,10 +94,12 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     }
   }, [projects]);
 
+  // Memoize the list of projects that require active polling
   const activeProjectsList = useMemo(() => 
     Object.values(projects).filter(p => p.activeStep !== "COMPLETED" && p.error === null), 
   [projects]);
 
+  // SWR Global Polling: Executes every 5 seconds if there are active projects
   useSWR(activeProjectsList.length > 0 ? "global-polling" : null, async () => {
     const token = await getAuthToken();
     if (!token) return;
@@ -104,6 +110,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     for (const project of activeProjectsList) {
       const { projectId, activeStep, currentJobId, deliverableJobs, completedDeliverables, keywords, targetAudience } = project;
 
+      // Handle Prompt and Video status tracking
       if ((activeStep === "PROMPT" || activeStep === "VIDEO") && currentJobId) {
         const res = activeStep === "PROMPT" 
           ? await getPromptStatus(token, currentJobId) 
@@ -125,7 +132,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
             const replicaId = localStorage.getItem(`r_${projectId}`) || "";
             
             try {
-              // Ahora pasamos keywords y targetAudience extraídos del estado del proyecto
+              // Trigger video rendering and deliverable generation in parallel
               const [videoRes, ...delivRes] = await Promise.all([
                 generateVideoFromScript(token, { 
                     scriptId, 
@@ -154,14 +161,17 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
                 updatedProjects[projectId].error = "Network error while triggering assets"; 
             }
           } else {
+            // VIDEO IS READY: Move to deliverables phase and trigger success modal
             updatedProjects[projectId].activeStep = "DELIVERABLES";
             updatedProjects[projectId].currentJobId = null;
+            
+            setLastCompletedProjectId(projectId); // Save ID for the Modal's link
             setShowSuccessModal(true);
           }
         }
       }
 
-      // Polling de Deliverables
+      // Deliverables Polling: Check status of pending HTML/SEO assets
       const pending = deliverableJobs.filter(id => !completedDeliverables.includes(id));
       if (pending.length > 0) {
         const statuses = await Promise.all(pending.map(id => getHtmlDeliverableStatus({ token, jobId: id })));
@@ -173,6 +183,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         }
       }
 
+      // Mark project as COMPLETED if all deliverables are done
       if (updatedProjects[projectId].activeStep === "DELIVERABLES" && 
           updatedProjects[projectId].completedDeliverables.length >= updatedProjects[projectId].deliverableJobs.length) {
         updatedProjects[projectId].activeStep = "COMPLETED";
@@ -183,6 +194,9 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     if (hasChanges) setProjects(updatedProjects);
   }, { refreshInterval: 5000 });
 
+  /**
+   * Initializes a new project in the tracking system
+   */
   const startNewProject = (
     jobId: string, 
     userId: string, 
@@ -201,17 +215,23 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         deliverableJobs: [],
         completedDeliverables: [],
         error: null,
-        keywords: options.keywords,      // Guardado exitoso
-        targetAudience: options.targetAudience // Guardado exitoso
+        keywords: options.keywords,
+        targetAudience: options.targetAudience
       }
     }));
   };
 
+  /**
+   * Manually removes a project from the state and local storage
+   */
   const removeProject = (id: string) => {
     setProjects(prev => { const n = {...prev}; delete n[id]; return n; });
     localStorage.removeItem(`u_${id}`); localStorage.removeItem(`r_${id}`);
   };
 
+  /**
+   * Resets the entire generation state
+   */
   const clearAllProjects = () => {
     const keys = Object.keys(localStorage);
     keys.forEach(k => (k.startsWith("u_") || k.startsWith("r_") || k === "active_generation_projects") && localStorage.removeItem(k));
@@ -231,9 +251,14 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
             <DialogDescription className="text-[#3E4462] mt-2 mb-6">
               Your video and assets are being finalized. Check your dashboard.
             </DialogDescription>
-            <Link href="/dashboard" className="w-full">
-              <Button onClick={() => setShowSuccessModal(false)} className="w-full bg-[#6D58BB] hover:bg-[#080936] text-white h-12 rounded-xl flex items-center gap-2">
-                Go to Dashboard <ArrowRight className="w-4 h-4" />
+            
+            {/* LINK: Dynamically points to the project that just finished */}
+            <Link href={lastCompletedProjectId ? `/generation/${lastCompletedProjectId}` : "#"} className="w-full">
+              <Button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-[#6D58BB] hover:bg-[#080936] text-white h-12 rounded-xl flex items-center gap-2"
+              >
+                Go to Project <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>

@@ -15,10 +15,6 @@ import { uploadDocumentFile } from "@/services/documents/document-upload";
 import { uploadDocumentFromUrl } from "@/services/documents/document-upload-from-url";
 import { setDocumentPrimaryFocus } from "@/services/documents/set-document-as-primary-focus";
 
-/**
- * Custom hook to manage the video creation workflow.
- * Handles state for avatars, file uploads, project metadata, and credit validation.
- */
 export function useVideoCreator() {
   const { startNewProject, projects } = useGeneration();
 
@@ -35,18 +31,16 @@ export function useVideoCreator() {
   const [videoSize, setVideoSize] = useState("standard");
 
   // --- USER INPUT STATES ---
-  const [primaryFocus, setPrimaryFocus] = useState<"files" | "urls">("files"); // Toggle for data source
-  const [targetAudience, setTargetAudience] = useState(""); // Intended viewer profile
-  const [topic, setTopic] = useState(""); // Main content description
-  const [keywords, setKeywords] = useState(""); // SEO and context tags
+  const [primaryFocus, setPrimaryFocus] = useState<"files" | "urls">("files");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [topic, setTopic] = useState("");
+  const [keywords, setKeywords] = useState("");
   const [projectName, setProjectName] = useState("");
 
   // --- STRATEGY/TRAINING STATES ---
   const [trainingType, setTrainingType] = useState<string>("");
   const [customTrainingType, setCustomTrainingType] = useState("");
-  const [customTrainingOptions, setCustomTrainingOptions] = useState<string[]>(
-    []
-  );
+  const [customTrainingOptions, setCustomTrainingOptions] = useState<string[]>([]);
 
   // --- UI FEEDBACK & BILLING ---
   const [isLocalGenerating, setIsLocalGenerating] = useState(false);
@@ -55,31 +49,21 @@ export function useVideoCreator() {
   const [success, setSuccess] = useState("");
   const [previewVideo, setPreviewVideo] = useState<string | null>(null);
   const [previewReplicaName, setPreviewReplicaName] = useState("");
-  const [availableCredits, setAvailableCredits] = useState<number>(0);
+  const [availableCredits, setAvailableCredits] = useState<number | null>(null);
 
-  /**
-   * Converts the selected duration string (e.g., "1m") into total seconds.
-   */
   const calculateTotalCredits = () => {
     const value = parseInt(videoLength.match(/(\d+)/)?.[0] || "0");
     return videoLength.toLowerCase().includes("m") ? value * 60 : value;
   };
 
   const totalRequired = calculateTotalCredits();
-  const hasEnoughCredits = availableCredits >= totalRequired;
+  const hasEnoughCredits = availableCredits === null ? true : availableCredits >= totalRequired;
 
-  /**
-   * Checks if there's any ongoing generation in the global context.
-   */
   const currentActiveProject = useMemo(
     () => Object.values(projects).find((p) => p.activeStep !== "COMPLETED"),
     [projects]
   );
 
-  /**
-   * Initial Data Fetching:
-   * Syncs user credits and available AI avatars on mount.
-   */
   useEffect(() => {
     const initData = async () => {
       try {
@@ -89,14 +73,20 @@ export function useVideoCreator() {
           getCreditHistory(token, userId),
           getVideoReplicas(token),
         ]);
-        if (creditsRes?.success)
+        
+        if (creditsRes?.success) {
           setAvailableCredits(creditsRes.data.currentBalance);
+        } else {
+          setAvailableCredits(0);
+        }
+
         if (replicasRes.success && replicasRes.data.length > 0) {
           setReplicas(replicasRes.data);
           setSelectedReplica(replicasRes.data[0].replica_id);
         }
       } catch (e) {
         setError("Error loading initial data");
+        setAvailableCredits(0);
       } finally {
         setLoadingReplicas(false);
       }
@@ -105,18 +95,14 @@ export function useVideoCreator() {
   }, [isLocalGenerating]);
 
   /**
-   * Main Execution Handler:
-   * 1. Validates inputs and credits.
-   * 2. Orchestrates folder and project creation.
-   * 3. Uploads documents or processes URLs.
-   * 4. Initiates the AI Script (Prompt) generation.
-   * 5. Registers the task in the global polling context.
+   * Main Execution Handler
    */
   const handleGenerate = async () => {
-    if (!hasEnoughCredits) {
+    if (availableCredits !== null && availableCredits < totalRequired) {
       setError("Insufficient credits for this duration");
       return;
     }
+    
     if (projectName.trim().length < 4) {
       setProjectError("Project name is too short");
       return;
@@ -129,19 +115,22 @@ export function useVideoCreator() {
       const token = await getAuthToken();
       const userId = localStorage.getItem("user") || "user_temp";
 
-      // STEP 1: Ensure project structure exists
+      // 1. Manejo de Carpeta y Proyecto
       const folders = await getListFolders(token);
       let folderId =
         folders.data?.[0]?.folderId ||
         (await createFolder(token, { folderName: "Main" })).data?.folderId;
+      
       const proj = await createProject(token, {
         folderId,
         projectName: projectName.trim(),
       });
 
-      // STEP 2: Process Document Uploads
-      let documentId: string | undefined = undefined;
+      const currentProjectId = proj.data.projectId;
+      const currentTitle = projectName.trim();
 
+      // 2. Manejo de Documentos
+      let documentId: string | undefined = undefined;
       if (primaryFocus === "files" && files.length > 0) {
         const up = await uploadDocumentFile(token, files[0], userId, true);
         if (up.success) {
@@ -156,7 +145,7 @@ export function useVideoCreator() {
         }
       }
 
-      // STEP 3: Initiate Script Generation
+      // 3. Generación
       const response = await generatePrompt(token, {
         userInput: `Topic: ${topic}. Keywords: ${keywords}. Audience: ${targetAudience}`,
         userId,
@@ -166,18 +155,32 @@ export function useVideoCreator() {
         position: videoPosition,
         size: videoSize,
         trainingType: trainingType || "General",
-        documentId: documentId, // Linked uploaded resource
+        documentId: documentId,
       });
 
       if (response.success) {
-        // STEP 4: Hand over to Global Context for polling and video rendering
+        // --- MANEJO DE MÚLTIPLES PROYECTOS ACTIVOS ---
+        const newActiveGeneration = {
+          jobId: response.data.jobId,
+          projectId: currentProjectId,
+          title: currentTitle,
+          status: "active",
+          createdAt: new Date().toISOString()
+        };
+
+        // Obtenemos lista previa del localStorage, agregamos el nuevo y guardamos
+        const existingGenerations = JSON.parse(localStorage.getItem("active_prompts") || "[]");
+        const updatedGenerations = [...existingGenerations, newActiveGeneration];
+        localStorage.setItem("active_prompt_generations", JSON.stringify(updatedGenerations));
+
+        // 4. Iniciar en Contexto Global
         startNewProject(response.data.jobId, userId, selectedReplica, {
-          projectId: proj.data.projectId,
+          projectId: currentProjectId,
           keywords: keywords,
           targetAudience: targetAudience,
         });
 
-        // Final UI Cleanup
+        // Limpieza de Formulario
         setProjectName("");
         setTopic("");
         setKeywords("");
@@ -194,12 +197,10 @@ export function useVideoCreator() {
   };
 
   return {
-    // Replica data
     replicas,
     loadingReplicas,
     selectedReplica,
     setSelectedReplica,
-    // File/Url management
     files,
     setFiles,
     urls,
@@ -208,14 +209,12 @@ export function useVideoCreator() {
     setNewUrl,
     primaryFocus,
     setPrimaryFocus,
-    // Content inputs
     topic,
     setTopic,
     keywords,
     setKeywords,
     targetAudience,
     setTargetAudience,
-    // Output configuration
     videoLength,
     setVideoLength,
     language,
@@ -224,21 +223,18 @@ export function useVideoCreator() {
     setVideoPosition,
     videoSize,
     setVideoSize,
-    // Project metadata
     projectName,
     projectError,
     handleProjectNameChange: (v: string) => {
       setProjectName(v);
       setProjectError("");
     },
-    // Strategy
     trainingType,
     setTrainingType,
     customTrainingType,
     setCustomTrainingType,
     customTrainingOptions,
     setCustomTrainingOptions,
-    // Status and Feedback
     generating: isLocalGenerating || !!currentActiveProject,
     statusMessage: isLocalGenerating ? "Initializing Project..." : null,
     error,
@@ -246,11 +242,9 @@ export function useVideoCreator() {
     previewVideo,
     setPreviewVideo,
     previewReplicaName,
-    // Financials
     availableCredits,
     hasEnoughCredits,
     calculateTotalCredits,
-    // Logic Actions
     handleGenerate,
     handlePlayVideo: (url: string, name: string) => {
       setPreviewVideo(url);
