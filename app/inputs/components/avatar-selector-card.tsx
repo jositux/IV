@@ -35,7 +35,7 @@ export function AvatarSelectorCard({
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {replicas.slice(0, 8).map((replica) => (
+            {replicas.slice(0, 100).map((replica) => (
               <div key={replica.replica_id} className="text-center">
                 <div
                   className={`relative rounded-xl border border-[#DADADA] overflow-hidden transition-all duration-300 ${
@@ -62,7 +62,7 @@ export function AvatarSelectorCard({
 
                     <div className="absolute inset-0 flex items-center justify-center -z-10">
                       <span className="text-4xl font-bold text-gray-200">
-                        {replica.replica_name[0]}
+                        {replica.replica_name[0]} 
                       </span>
                     </div>
 
