@@ -40,17 +40,19 @@ export function OutputFormatCard({
           <div className="grid grid-cols-5 gap-2">
             {VIDEO_LENGTHS.map((length) => (
               <Button
-                key={length}
-                variant={videoLength === length ? "default" : "outline"}
-                onClick={() => onVideoLengthChange(length)}
-                className={`h-8 rounded-full ${
-                  videoLength === length
-                    ? "bg-gray-800 text-white"
-                    : "bg-gray-100"
-                }`}
-              >
-                {length}
-              </Button>
+              key={length}
+              variant="outline"
+              onClick={() => onVideoLengthChange(length)}
+              className={`h-8 rounded-full cursor-pointer transition-all ${
+                videoLength === length
+                  ? "border border-[#0B0F3A] text-[#272830] bg-[#E2F2FE] hover:bg-[#E2F2FE] hover:border-[#0B0F3A] hover:text-[#272830]"
+                  : "bg-gray-100 hover:border hover:border-[#0B0F3A] hover:text-[#272830] hover:bg-[#E2F2FE]"
+              }`}
+            >
+              {length}
+            </Button>
+            
+            
             ))}
           </div>
         </div>
@@ -60,14 +62,15 @@ export function OutputFormatCard({
             Video Position
           </Label>
           <div className="flex gap-3 mb-4">
-            <button
-              onClick={() => onVideoPositionChange("bottom-left")}
-              className={`flex-1 h-32 bg-gray-100 rounded-lg relative transition-all cursor-pointer ${
-                videoPosition === "bottom-left"
-                  ? "ring-2 border-2 border-[#0B0F3A] ring-indigo-500 bg-gray-200"
-                  : "hover:bg-gray-200"
-              }`}
-            >
+          <button
+  onClick={() => onVideoPositionChange("bottom-left")}
+  className={`flex-1 h-32 rounded-lg relative transition-all cursor-pointer ${
+    videoPosition === "bottom-left"
+      ? "ring-2 border-2 border-[#0B0F3A] ring-indigo-500 bg-[#E2F2FE]"
+      : "bg-gray-100 hover:bg-[#E2F2FE]"
+  }`}
+>
+
               <div className="absolute bottom-3 left-3 w-12 h-9 bg-[#0B0F3A] rounded flex items-center justify-center shadow-sm">
                 <Play className="w-4 h-4 text-white fill-current" />
               </div>
@@ -76,13 +79,13 @@ export function OutputFormatCard({
               </span>
             </button>
             <button
-              onClick={() => onVideoPositionChange("bottom-right")}
-              className={`flex-1 h-32 bg-gray-100 rounded-lg relative transition-all cursor-pointer ${
-                videoPosition === "bottom-right"
-                  ? "ring-2 border-2 border-[#0B0F3A] ring-indigo-500 bg-gray-200"
-                  : "hover:bg-gray-200"
-              }`}
-            >
+  onClick={() => onVideoPositionChange("bottom-right")}
+  className={`flex-1 h-32 rounded-lg relative transition-all cursor-pointer ${
+    videoPosition === "bottom-right"
+      ? "ring-2 border-2 border-[#0B0F3A] ring-indigo-500 bg-[#E2F2FE]"
+      : "bg-gray-100 hover:bg-[#E2F2FE]"
+  }`}
+>
               <div className="absolute bottom-3 right-3 w-12 h-9 bg-[#0B0F3A] rounded flex items-center justify-center shadow-sm">
                 <Play className="w-4 h-4 text-white fill-current" />
               </div>
@@ -110,21 +113,25 @@ export function OutputFormatCard({
    <Button
   variant="outline"
   onClick={() => onVideoSizeChange(size)}
-  className={`w-full h-12 rounded-full capitalize cursor-pointer transition-all duration-200 text-[15px] font-semibold tracking-tight border-2 ${
+  className={`w-full h-12 rounded-full capitalize cursor-pointer transition-all duration-200 text-[15px] font-semibold tracking-tight border-1 ${
     isSelected
-      ? "bg-[#0B0F3A] text-white border-[#0B0F3A] shadow-md translate-y-[-1px] hover:bg-[#0B0F3A] hover:text-white hover:border-[#1D4ED8]"
-      : "bg-white text-[#0B0F3A] border-[#D1D5DB] hover:bg-[#1D4ED8] hover:text-white hover:border-[#1D4ED8] hover:shadow-md"
+      ? "bg-[#E2F2FE] text-[#272830] border-[#0B0F3A] hover:bg-[#E2F2FE] hover:text-[#272830]"
+      : "bg-gray-100 text-[#272830] border-[#D1D5DB] hover:bg-[#E2F2FE] hover:text-[#272830] hover:border-[#0B0F3A]"
   }`}
 >
-  {size} 
-  <span className={`ml-2 text-xs font-normal transition-colors duration-200 ${
-    isSelected 
-      ? "text-blue-100 opacity-90" 
-      : "text-gray-400 group-hover:text-blue-100"
-  }`}>
+  {size}
+
+  <span
+    className={`ml-2 text-xs font-normal transition-colors duration-200 ${
+      isSelected
+        ? "text-[#272830]/80"
+        : "text-gray-400 group-hover:text-[#272830]"
+    }`}
+  >
     {dimensions[size as keyof typeof dimensions]}
   </span>
 </Button>
+
       
       {/* Subtextos con criterio diferenciado */}
       <div className="px-5">
@@ -163,17 +170,19 @@ export function OutputFormatCard({
           <div className="grid grid-cols-3 gap-2">
             {LANGUAGES.map((lang) => (
               <Button
-                key={lang.code}
-                variant="outline"
-                onClick={() => onLanguageChange(lang.code)}
-                className={`w-full rounded-full text-xs px-1 capitalize cursor-pointer transition-all ${
-                  language === lang.code
-                    ? "bg-gray-800 text-white hover:bg-gray-800 hover:text-white"
-                    : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                }`}
-              >
-                {lang.label}
-              </Button>
+              key={lang.code}
+              variant="outline"
+              onClick={() => onLanguageChange(lang.code)}
+              className={`w-full rounded-full text-xs px-1 capitalize cursor-pointer transition-all h-8 ${
+                language === lang.code
+                  ? "border-[#0B0F3A] border-1 text-[#272830] bg-[#E2F2FE] hover:bg-[#E2F2FE]"
+                  : "bg-gray-100 hover:bg-[#E2F2FE] hover:text-[#272830] hover:border-[#0B0F3A]"
+              }`}
+            >
+              {lang.label}
+            </Button>
+            
+            
             ))}
           </div>
         </div>

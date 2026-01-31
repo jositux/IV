@@ -38,7 +38,7 @@ export function StickyFooter({
             <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Required</p>
             <p className="text-2xl font-semibold text-[#080936]">
               {totalCredits} 
-              <span className="text-xs font-normal text-gray-400 uppercase ml-1">credits</span>
+              <span className="text-xs font-normal text-gray-400 uppercase ml-1">cr.</span>
             </p>
           </div>
           
@@ -51,7 +51,7 @@ export function StickyFooter({
               className="text-2xl font-semibold"
             >
               {isReady ? availableCredits : "—"} 
-              <span className="text-xs font-normal text-gray-400 uppercase ml-1">credits</span>
+              <span className="text-xs font-normal text-gray-400 uppercase ml-1">av.</span>
             </motion.p>
           </div>
         </div>
@@ -96,9 +96,9 @@ export function StickyFooter({
                   <Button 
                     onClick={onGenerate} 
                     disabled={generating || !canGenerate} 
-                    className="w-full h-full bg-[#080936] hover:bg-[#12145e] text-white font-bold text-lg rounded-xl transition-all shadow-lg cursor-pointer"
+                    className="w-full rounded-xl bg-[#6D58BB] px-8 py-7 text-xl font-normal text-white hover:bg-[#080936] cursor-pointer"
                   >
-                    {generating ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processing</> : <><Sparkles className="w-5 h-5 mr-2" /> Generate</>}
+                    {generating ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Processing</> : <><Sparkles className="w-5 h-5 mr-2" /> Generate Project</>}
                   </Button>
                 </motion.div>
               )}
