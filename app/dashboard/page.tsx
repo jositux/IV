@@ -275,7 +275,7 @@ export default function Dashboard() {
             { label: "Landing Pages", value: 0, icon: Monitor },
           ].map((stat) => (
             <Card key={stat.label} className="border-1 bg-white shadow-none border-gray-200">
-              <CardContent className="px-6 h-24 flex flex-col justify-center">
+              <CardContent className="px-6 flex flex-col justify-center">
                 <div className="mb-1 flex items-center justify-between"><p className="text-xs text-gray-500 uppercase tracking-widest">{stat.label}</p><stat.icon className="h-4 w-4 text-gray-900" /></div>
                 <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
               </CardContent>
