@@ -183,7 +183,7 @@ export default function GenerationPage() {
               {/* HEADER DEL SIDEBAR CON BOTÓN DE DESCARGA */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-6">
-                  <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors group">
+                  <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors group cursor-pointer">
                     <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
                     <span className="font-semibold text-sm text-[#6D58BB]">Dashboard</span>
                   </Link>
@@ -196,7 +196,7 @@ export default function GenerationPage() {
                         animate={{ opacity: 1, x: 0 }}
                         onClick={handleDownloadAll}
                         disabled={isDownloading}
-                        className="flex items-center gap-2 bg-indigo-50 text-[#6D58BB] px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-all border border-indigo-100"
+                        className="flex items-center gap-2 bg-indigo-50 text-[#6D58BB] px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-all border border-1 border-[#6D58BB] cursor-pointer"
                       >
                         {isDownloading ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -219,26 +219,43 @@ export default function GenerationPage() {
               <div className="space-y-3">
                 {[
                   { id: "video-preview", icon: Play, label: "Your Video", desc: "" },
-                  { id: "urls-script", icon: Files, label: "Video URLs, Embed Codes, Video Script Copy", desc: "Instant access to your video files..." },
-                  { id: "geo-analysis", icon: Sparkles, label: "How Your Video Content Is Engineered", desc: "Personalized GEO analysis..." },
-                  { id: "add-website", icon: BookOpen, label: "How to Add Your Sticky Video", desc: "Works on WordPress, Shopify..." },
+                  { id: "urls-script", icon: Files, label: "Video URLs, Embed Codes, Video Script Copy", desc: "Instant access to your video files, universal embed codes, and complete transcript for seamless deployment" },
+                  { id: "geo-analysis", icon: Sparkles, label: "How Your Video Content Is Engineered for Al Search Dominance", desc: "Personalized GEO analysis of YOUR video's dominance across ChatGPT, Perplexity, Claude, Gemini & Google AI - complete breakdown of how you achieve all 8 advanced GEO optimizations" },
+                  { id: "add-website", icon: BookOpen, label: "How to Add Your Sticky Video to Your Website - All Platforms", desc: "Works on WordPress, Shopify, Wix, Squarespace, Webflow, React/Vue, Custom HTML & all platforms" },
                   { id: "sticky-action", icon: MonitorPlay, label: "See Your Sticky Video in Action", desc: "" },
-                  { id: "seo-package", icon: Wrench, label: "GEO & SEO Optimization Package", desc: "Schema markup, meta tags..." },
+                  { id: "seo-package", icon: Wrench, label: "GEO & SEO Optimization Package", desc: "Schema markup, meta tags & technical code to maximize AI search visibility" },
                   { id: "keyword-analysis", icon: Search, label: "Keyword Research & Content Gap Analysis", desc: "" },
                 ].map((item) => (
                   <button
-                    key={item.id}
-                    onClick={() => scrollToSection(item.id)}
-                    className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all duration-200 text-left border ${
-                      activeSection === item.id ? "bg-white border-indigo-400 shadow-sm" : "bg-white border-gray-100 hover:border-gray-200"
-                    }`}
-                  >
-                    <item.icon className={`w-6 h-6 shrink-0 mt-1 ${activeSection === item.id ? "text-[#6D58BB]" : "text-black"}`} />
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[15px] font-regular text-[#6D58BB] leading-tight">{item.label}</span>
-                      {item.desc && <span className="text-[13px] text-gray-500 leading-tight line-clamp-1">{item.desc}</span>}
-                    </div>
-                  </button>
+  key={item.id}
+  onClick={() => scrollToSection(item.id)}
+  className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all duration-200 text-left border cursor-pointer ${
+    activeSection === item.id
+      ? "bg-white border-indigo-400 shadow-sm"
+      : "bg-white border-gray-100 hover:border-gray-200"
+  }`}
+>
+  {/* Icono arriba */}
+  <item.icon
+    className={`w-6 h-6 shrink-0 mt-1 ${
+      activeSection === item.id ? "text-[#6D58BB]" : "text-black"
+    }`}
+  />
+
+  {/* Texto centrado vertical */}
+  <div className="flex flex-col gap-1 self-stretch justify-center">
+    <span className="text-[15px] font-regular text-[#6D58BB] leading-tight">
+      {item.label}
+    </span>
+
+    {item.desc && (
+      <span className="text-[12px] text-gray-500 leading-tight">
+        {item.desc}
+      </span>
+    )}
+  </div>
+</button>
+
                 ))}
               </div>
             </div>
@@ -246,11 +263,11 @@ export default function GenerationPage() {
 
           <main className="lg:col-span-8 space-y-12">
             <section id="video-preview" className="scroll-mt-10">
-              <h1 className="text-2xl font-bold text-[#080936] mb-6 flex items-center gap-3 uppercase tracking-tight">
-                <span className="w-2 h-8 bg-indigo-600 rounded-full" />
-                {projectData?.projectName}
+              <h1 className="text-3xl font-regular text-[#080936] mb-6 flex items-center gap-3 tracking-tight">
+               
+                <span className="text-sm">Your Project:</span>{projectData?.projectName}
               </h1>
-              <div className="w-full aspect-video rounded-[32px] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10">
+              <div className="w-full aspect-video rounded-[8px] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10">
                 <div 
                   className="w-full h-full [&_iframe]:w-full [&_iframe]:h-full border-none" 
                   dangerouslySetInnerHTML={{ __html: videoData?.metaData?.embed || "" }} 
