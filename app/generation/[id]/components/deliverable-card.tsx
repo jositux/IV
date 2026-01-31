@@ -43,7 +43,7 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
   };
 
   return (
-    <div id={id} className="deliverable-card-container bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden mb-8 transition-all hover:shadow-md">
+    <div id={id} className="deliverable-card-container bg-white rounded-[8px] border border-gray-100 shadow-sm overflow-hidden mb-8 transition-all hover:shadow-md">
       {/* HEADER */}
       <div className="px-6 py-4 flex items-center justify-between border-b border-gray-50 bg-white sticky top-0 z-10">
         <div className="flex items-center gap-3">
