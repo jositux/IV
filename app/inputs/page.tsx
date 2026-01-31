@@ -59,6 +59,7 @@ export default function VideoCreatorV2Page() {
         <FileUploadCard files={files} urls={urls} newUrl={newUrl} primaryFocus={primaryFocus} onFilesChange={setFiles} onUrlsChange={setUrls} onNewUrlChange={setNewUrl} onPrimaryFocusChange={setPrimaryFocus} />
 
         <SectionHeader number={3} title="Choose Your Studio-Grade Avatar" subtitle="Pick the digital avatar who will deliver your content. Each has different voice,tone, and language." className="mt-16" />
+       
         <AvatarSelectorCard replicas={replicas} loadingReplicas={loadingReplicas} selectedReplica={selectedReplica} onSelectReplica={setSelectedReplica} onPlayVideo={handlePlayVideo} />
 
         <SectionHeader number={4} title="Output Format" className="mt-16" />

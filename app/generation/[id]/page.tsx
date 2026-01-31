@@ -18,7 +18,8 @@ import {
   Files,
   Layout,
   MousePointer2,
-  RefreshCw
+  RefreshCw,
+  Download // Nuevo icono
 } from "lucide-react";
 import Link from "next/link";
 import { AppHeader } from "@/components/shared/app-header";
@@ -28,13 +29,21 @@ import { getAuthToken } from "@/lib/get-auth-token";
 import { getProjectById } from "@/services/get-project-by-id";
 import { getProjectDeliverables } from "@/services/deliverables/get-deliverables-by-project-id";
 import { DeliverableCard } from "./components/deliverable-card";
-import { useGeneration } from "@/context/generation-context"; // Importante para el tracking
+import { useGeneration } from "@/context/generation-context";
+import JSZip from "jszip"; // Importante para la descarga
+
+const REQUIRED_TYPES = [
+  "GEO_OPTIMIZATION_REPORT_HTML",
+  "CUSTOMER_INSTRUCTIONS_HTML",
+  "COMPLETE_HTML_CODE",
+  "SEO_GEO_OPTIMIZATION_PACKAGE_HTML",
+  "KEYWORD_RESEARCH_HTML"
+];
 
 export default function GenerationPage() {
   const params = useParams();
   const projectId = params.id as string;
   
-  // Acceso al estado global de generación
   const { projects } = useGeneration();
   const activeProject = projects[projectId];
 
@@ -42,10 +51,15 @@ export default function GenerationPage() {
   const [videoData, setVideoData] = useState<any>(null);
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false); // Estado para la descarga
   const [activeSection, setActiveSection] = useState("video-preview");
   const [showBackTop, setShowBackTop] = useState(false);
 
-  // Función para refrescar entregables sin recargar toda la página
+  // Lógica para saber si todo está listo
+  const isAllReady = REQUIRED_TYPES.every(type => 
+    deliverables.some(d => d.artifactType === type)
+  );
+
   const refreshDeliverables = useCallback(async () => {
     try {
       const token = await getAuthToken();
@@ -56,10 +70,35 @@ export default function GenerationPage() {
     }
   }, [projectId]);
 
+  // Función de descarga ZIP
+  const handleDownloadAll = async () => {
+    setIsDownloading(true);
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder(`${projectData?.projectName || "project"}-assets`);
+
+      deliverables.forEach((item) => {
+        const fileName = `${item.artifactType.toLowerCase()}.html`;
+        const content = item.contentBody?.replace(/<[^>]+_(BEGIN|END)>/g, "").trim() || "";
+        folder?.file(fileName, content);
+      });
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = window.URL.createObjectURL(content);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${projectData?.projectName || "project"}_all_assets.zip`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download error:", error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   useEffect(() => {
-    const handleScroll = () => {
-      setShowBackTop(window.scrollY > 400);
-    };
+    const handleScroll = () => setShowBackTop(window.scrollY > 400);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -76,7 +115,6 @@ export default function GenerationPage() {
     return () => observer.disconnect();
   }, [loading]);
 
-  // Carga inicial
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -99,7 +137,6 @@ export default function GenerationPage() {
     loadData();
   }, [projectId]);
 
-  // EFECTO CLAVE: Si el contexto detecta que terminó un nuevo asset, refrescamos la lista
   useEffect(() => {
     if (activeProject?.completedDeliverables?.length) {
       refreshDeliverables();
@@ -115,28 +152,21 @@ export default function GenerationPage() {
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F8F9FB]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
-          <p className="text-gray-400 font-medium italic">Preparing your assets...</p>
-        </div>
+        <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
       </div>
     );
   }
 
-  // Componente interno para no repetir estilos de carga
   const LoadingAsset = ({ title }: { title: string }) => (
     <div className="w-full bg-white border border-dashed border-indigo-200 rounded-[32px] p-12 flex flex-col items-center justify-center text-center">
       <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin mb-4" />
       <h3 className="text-lg font-medium text-[#080936]">Generating {title}...</h3>
-      <p className="text-sm text-gray-400 italic">Our AI is finalizing your content</p>
     </div>
   );
 
@@ -149,47 +179,67 @@ export default function GenerationPage() {
           
           <aside className="lg:col-span-4">
             <div className="sticky top-10 space-y-4">
+              
+              {/* HEADER DEL SIDEBAR CON BOTÓN DE DESCARGA */}
               <div className="mb-4">
-                <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 mb-6 transition-colors group">
-                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
-                  <span className="font-semibold text-sm text-[#6D58BB]">Dashboard</span>
-                </Link>
+                <div className="flex items-center justify-between mb-6">
+                  <Link href="/dashboard" className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors group">
+                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
+                    <span className="font-semibold text-sm text-[#6D58BB]">Dashboard</span>
+                  </Link>
+
+                  {/* BOTÓN DE DESCARGA AL LADO DEL LINK */}
+                  <AnimatePresence>
+                    {isAllReady && (
+                      <motion.button
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        onClick={handleDownloadAll}
+                        disabled={isDownloading}
+                        className="flex items-center gap-2 bg-indigo-50 text-[#6D58BB] px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-all border border-indigo-100"
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Download className="w-3 h-3" />
+                        )}
+                        DOWNLOAD ALL (.ZIP)
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </div>
+
                 <h1 className="text-[24px] font-semibold text-[#1e2a4a] leading-tight mb-0">Your Complete Project Deliverables</h1>
-                <p className="text-gray-600 text-[16px] leading-snug">
+                <p className="text-gray-600 text-[16px] leading-snug mt-2">
                   Everything you need to deploy and optimize your video for maximum AI search visibility
                 </p>
               </div>
 
+              {/* Sidebar Navigation */}
               <div className="space-y-3">
                 {[
                   { id: "video-preview", icon: Play, label: "Your Video", desc: "" },
-                  { id: "urls-script", icon: Files, label: "Video URLs, Embed Codes, Video Script Copy", desc: "Instant access to your video files, universal embed codes, and complete transcript for seamless deployment" },
-                  { id: "geo-analysis", icon: Sparkles, label: "How Your Video Content Is Engineered for AI Search Dominance", desc: "Personalized GEO analysis of YOUR video's dominance across ChatGPT, Perplexity, Claude, Gemini & Google AI - complete breakdown of how you achieve all 8 advanced GEO optimizations" },
-                  { id: "add-website", icon: BookOpen, label: "How to Add Your Sticky Video to Your Website - All Platforms", desc: "Works on WordPress, Shopify, Wix, Squarespace, Webflow, React/Vue, Custom HTML & all platforms" },
+                  { id: "urls-script", icon: Files, label: "Video URLs, Embed Codes, Video Script Copy", desc: "Instant access to your video files..." },
+                  { id: "geo-analysis", icon: Sparkles, label: "How Your Video Content Is Engineered", desc: "Personalized GEO analysis..." },
+                  { id: "add-website", icon: BookOpen, label: "How to Add Your Sticky Video", desc: "Works on WordPress, Shopify..." },
                   { id: "sticky-action", icon: MonitorPlay, label: "See Your Sticky Video in Action", desc: "" },
-                  { id: "copy-sticky", icon: MousePointer2, label: "Copy your sticky video to place on your website", desc: "" },
-                  { id: "seo-package", icon: Wrench, label: "GEO & SEO Optimization Package", desc: "Schema markup, meta tags & technical code to maximize AI search visibility" },
+                  { id: "seo-package", icon: Wrench, label: "GEO & SEO Optimization Package", desc: "Schema markup, meta tags..." },
                   { id: "keyword-analysis", icon: Search, label: "Keyword Research & Content Gap Analysis", desc: "" },
-                ].map((item) => {
-                  const hasDesc = item.desc?.trim();
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => scrollToSection(item.id)}
-                      className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all duration-200 text-left border ${
-                        activeSection === item.id
-                          ? "bg-white border-indigo-400 shadow-sm"
-                          : "bg-white border-gray-100 hover:border-gray-200"
-                      }`}
-                    >
-                      <item.icon className={`w-6 h-6 shrink-0 mt-1 ${activeSection === item.id ? "text-[#6D58BB]" : "text-black"}`} />
-                      <div className={`flex flex-col gap-1 self-stretch ${hasDesc ? "justify-start" : "justify-center"}`}>
-                        <span className="text-[15px] font-regular text-[#6D58BB] leading-tight">{item.label}</span>
-                        {hasDesc && <span className="text-[13px] text-gray-500 leading-tight">{item.desc}</span>}
-                      </div>
-                    </button>
-                  );
-                })}
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => scrollToSection(item.id)}
+                    className={`w-full flex items-start gap-4 p-3 rounded-xl transition-all duration-200 text-left border ${
+                      activeSection === item.id ? "bg-white border-indigo-400 shadow-sm" : "bg-white border-gray-100 hover:border-gray-200"
+                    }`}
+                  >
+                    <item.icon className={`w-6 h-6 shrink-0 mt-1 ${activeSection === item.id ? "text-[#6D58BB]" : "text-black"}`} />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[15px] font-regular text-[#6D58BB] leading-tight">{item.label}</span>
+                      {item.desc && <span className="text-[13px] text-gray-500 leading-tight line-clamp-1">{item.desc}</span>}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           </aside>
@@ -267,7 +317,7 @@ export default function GenerationPage() {
           <motion.button 
             initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="fixed bottom-8 right-8 w-14 h-14 bg-[#080936] text-white rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(0,0,0,0.3)] z-[9999] hover:bg-indigo-600 transition-colors border border-white/10"
+            className="fixed bottom-8 right-8 w-14 h-14 bg-[#080936] text-white rounded-full flex items-center justify-center shadow-xl z-[9999]"
           >
             <ArrowUp className="w-6 h-6" />
           </motion.button>
