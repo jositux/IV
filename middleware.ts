@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
   const token = cookies.auth_token
 
   // Protected routes that require authentication
-  const protectedRoutes = ["/dashboard", "/video-inputs", "/pricing", "/generation", "/create-video"]
+  const protectedRoutes = ["/dashboard", "/inputs", "/pricing", "/generation", "/create-video"]
   const isProtectedRoute = protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route))
 
   if (isProtectedRoute) {

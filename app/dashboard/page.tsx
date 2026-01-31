@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { VideoPreviewModal } from "./components/video-preview-modal";
 import Link from "next/link";
-import useSWR, { useSWRConfig } from "swr"; 
+import useSWR from "swr"; 
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useBackendAuth } from "@/hooks/use-backend-auth";
@@ -117,8 +117,8 @@ const VideoCard = memo(function VideoCard({
               </div>
               {dateTime && (
                 <div className="text-[10px] text-gray-400 font-medium uppercase text-right leading-tight">
-                  <div>{dateTime.date}</div>
-                  <div className="opacity-80">{dateTime.time}</div>
+                  <div className="whitespace-nowrap">{dateTime.date}</div>
+                  <div className="opacity-80 whitespace-nowrap">{dateTime.time}</div>
                 </div>
               )}
             </div>
@@ -149,7 +149,6 @@ const VideoCard = memo(function VideoCard({
 });
 
 export default function Dashboard() {
-  const { mutate: globalMutate } = useSWRConfig();
   const [searchQuery, setSearchQuery] = useState("");
   const [videos, setVideos] = useState<UserVideo[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -166,7 +165,10 @@ export default function Dashboard() {
   const { mutate: mutateUser } = useUserProfile();
   const hasLoadedInitialData = useRef(false);
 
-  const handleOpenVideo = useCallback((v: UserVideo) => { frozenVideoRef.current = JSON.parse(JSON.stringify(v)); setIsVideoModalOpen(true); }, []);
+  const handleOpenVideo = useCallback((v: UserVideo) => { 
+    frozenVideoRef.current = JSON.parse(JSON.stringify(v)); 
+    setIsVideoModalOpen(true); 
+  }, []);
   const handleCloseVideo = useCallback(() => setIsVideoModalOpen(false), []);
 
   const loadDashboardData = useCallback(async (authToken: string, userId: string) => {
@@ -176,12 +178,37 @@ export default function Dashboard() {
         getListProjects(authToken),
         getCreditHistory(authToken, userId)
       ]);
+      
       setVideos(vRes.data || []);
       if (pRes.success) setProjects(pRes.data);
+      
       if (cRes?.success) {
-        setCurrentBalance(cRes.data.currentBalance);
-        // Sincronización ligera: Solo avisamos al Header que revalide su propia info
-        mutateUser(); 
+        const newBalance = cRes.data.currentBalance;
+        setCurrentBalance(newBalance);
+        
+        // 1. Intentamos actualizar el objeto actual
+        const rawUser = localStorage.getItem("user");
+        let updatedUser;
+
+        if (rawUser) {
+          updatedUser = JSON.parse(rawUser);
+          updatedUser.currentCreditBalance = newBalance;
+        } else {
+          // Si no existe, lo creamos con lo mínimo para que el Header no explote
+          updatedUser = { 
+            id: userId, 
+            currentCreditBalance: newBalance 
+          };
+        }
+
+        // 2. Escribimos en LocalStorage
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+
+        // 3. ¡ESTA ES LA CLAVE! Disparamos un evento global para que el Header despierte
+        window.dispatchEvent(new Event("storage"));
+
+        // 4. Forzamos al Hook de SWR a aceptar el nuevo valor
+        mutateUser(updatedUser, false);
       }
       
       const promptsStr = localStorage.getItem("active_prompt_generations") || "[]";
@@ -190,7 +217,7 @@ export default function Dashboard() {
       const genProjects = JSON.parse(genProjectsStr);
       setActivePrompts(prompts.filter((p: any) => genProjects[p.projectId]?.activeStep === "PROMPT"));
 
-    } catch (err) { console.error(err); } finally { setIsLoading(false); }
+    } catch (err) { console.error("Dashboard data error:", err); } finally { setIsLoading(false); }
   }, [mutateUser]);
 
   useEffect(() => {
@@ -199,10 +226,12 @@ export default function Dashboard() {
       if (!backendUser?.id) return;
       const authToken = await getAuthToken();
       setToken(authToken);
-      if (!hasLoadedInitialData.current) { await loadDashboardData(authToken, backendUser.id); hasLoadedInitialData.current = true; }
+      if (!hasLoadedInitialData.current) { 
+        await loadDashboardData(authToken, backendUser.id); 
+        hasLoadedInitialData.current = true; 
+      }
       interval = setInterval(() => {
-        const stored = localStorage.getItem("active_generation_projects");
-        if (stored && stored !== "{}") loadDashboardData(authToken, backendUser.id);
+        loadDashboardData(authToken, backendUser.id);
       }, 10000);
     }
     init();
@@ -223,7 +252,6 @@ export default function Dashboard() {
 
   const getProjectName = (id: string | null) => projects.find(p => p.projectId === id)?.projectName || "";
 
-  // BÚSQUEDA CORREGIDA (Título + Prompt)
   const filteredVideos = videos.filter(v => 
     getProjectName(v.projectId).toLowerCase().includes(searchQuery.toLowerCase()) ||
     (v.prompt || "").toLowerCase().includes(searchQuery.toLowerCase())
@@ -265,37 +293,21 @@ export default function Dashboard() {
 
         <div className="min-h-[400px]">
           {isLoading ? <DashboardSkeleton /> : (
-            <>
-              {videos.length === 0 && activePrompts.length === 0 ? (
-                <CardContent className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-[24px] border border-gray-200 py-24">
-                  <h2 className="mb-2 text-5xl font-medium text-[#080936]">Create My First Video</h2>
-                  <p className="mb-8 text-gray-500">PDFs, Word docs, and Web pages are ≈ 400 words each</p>
-                  <Link href="/inputs"><Button size="lg" className="rounded-xl bg-[#6D58BB] px-8 py-7 text-xl font-semibold text-white hover:bg-black">Start Creating Now <ArrowRight className="ml-2 h-6 w-6" /></Button></Link>
-                </CardContent>
-              ) : (filteredVideos.length === 0 && filteredPrompts.length === 0) ? (
-                <div className="flex flex-col items-center justify-center p-12 text-center bg-gray-50 rounded-[24px] border-2 border-dashed border-gray-200 py-20">
-                  <SearchX className="h-16 w-16 text-gray-300 mb-4" />
-                  <h3 className="text-2xl font-medium text-[#080936]">No results for "{searchQuery}"</h3>
-                  <Button variant="link" onClick={() => setSearchQuery("")} className="mt-4 text-[#6D58BB] font-semibold underline">Clear search</Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <AnimatePresence mode="popLayout">
-                    {filteredPrompts.map((p) => (
-                      <motion.div key={p.projectId} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                        <Card className="border-1 bg-white p-0 shadow-none border-gray-200 h-full overflow-hidden">
-                          <div className="aspect-video bg-gradient-to-br from-[#6D58BB]/10 to-[#E2F2FE] flex items-center justify-center"><RefreshCw className="w-10 h-10 text-[#6D58BB] animate-spin" /></div>
-                          <div className="p-5"><h2 className="text-2xl text-[#6D58BB] font-medium truncate">{p.title}</h2><div className="flex items-center gap-2 mt-2"><Sparkles className="w-3.5 h-3.5 text-amber-500" /><p className="text-sm text-gray-400 italic">Generating script...</p></div></div>
-                        </Card>
-                      </motion.div>
-                    ))}
-                    {filteredVideos.map((v) => (
-                      <VideoCard key={v.videoId} video={v} token={token} projectName={getProjectName(v.projectId)} rebuildingIds={rebuildingIds} currentBalance={currentBalance} handleRebuild={handleRebuild} onOpenVideo={handleOpenVideo} getStatusBadge={getStatusBadge} />
-                    ))}
-                  </AnimatePresence>
-                </div>
-              )}
-            </>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <AnimatePresence mode="popLayout">
+                {filteredPrompts.map((p) => (
+                  <motion.div key={p.projectId} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <Card className="border-1 bg-white p-0 shadow-none border-gray-200 h-full overflow-hidden">
+                      <div className="aspect-video bg-gradient-to-br from-[#6D58BB]/10 to-[#E2F2FE] flex items-center justify-center"><RefreshCw className="w-10 h-10 text-[#6D58BB] animate-spin" /></div>
+                      <div className="p-5"><h2 className="text-2xl text-[#6D58BB] font-medium truncate">{p.title}</h2><div className="flex items-center gap-2 mt-2"><Sparkles className="w-3.5 h-3.5 text-amber-500" /><p className="text-sm text-gray-400 italic">Generating script...</p></div></div>
+                    </Card>
+                  </motion.div>
+                ))}
+                {filteredVideos.map((v) => (
+                  <VideoCard key={v.videoId} video={v} token={token} projectName={getProjectName(v.projectId)} rebuildingIds={rebuildingIds} currentBalance={currentBalance} handleRebuild={handleRebuild} onOpenVideo={handleOpenVideo} getStatusBadge={getStatusBadge} />
+                ))}
+              </AnimatePresence>
+            </div>
           )}
         </div>
       </main>
