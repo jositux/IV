@@ -81,7 +81,13 @@ export function useBackendAuth(): UseBackendAuthReturn {
       const userData = await response.json()
       setBackendUser(userData)
 
+
+
       console.log("user real data", userData)
+      localStorage.setItem("user", userData.id);
+
+
+
       
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")

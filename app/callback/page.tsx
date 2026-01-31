@@ -32,6 +32,8 @@ function CallbackContent() {
           body: JSON.stringify({ code }),
         })
 
+        console.log(response)
+
         if (!response.ok) throw new Error("Failed to exchange code for tokens")
         
         router.push("/dashboard")
