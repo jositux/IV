@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { VideoPreviewModal } from "./components/video-preview-modal";
 import Link from "next/link";
-import useSWR, { useSWRConfig } from "swr"; 
+import useSWR from "swr"; 
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useBackendAuth } from "@/hooks/use-backend-auth";
@@ -20,8 +20,6 @@ import { getVideosByUser, type UserVideo } from "@/services/video/video-by-user"
 import { getAuthToken } from "@/lib/get-auth-token";
 import { getListProjects, type Project } from "@/services/get-list-projects";
 import { getProjectById } from "@/services/get-project-by-id";
-import { getCreditHistory } from "@/services/get-credits";
-import { reprocessVideo } from "@/services/video/reprocess-video";
 
 // --- HELPERS ---
 const formatVideoDate = (dateString?: string) => {
@@ -63,26 +61,23 @@ const VideoCard = memo(function VideoCard({
   video: initialVideo,
   token,
   projectName,
-  rebuildingIds,
   currentBalance,
-  handleRebuild,
   onOpenVideo,
   getStatusBadge,
 }: any) {
   const isTransient = ["processing", "queued", "pending"].includes(initialVideo.status?.toLowerCase());
+  
   const { data: updatedData } = useSWR(
     isTransient && token && initialVideo.projectId ? ["project-status", token, initialVideo.projectId] : null,
     projectFetcher,
-    { refreshInterval: 5000, revalidateOnFocus: false }
+    { refreshInterval: 8000, revalidateOnFocus: false }
   );
 
   const video = updatedData?.videos?.[0] || initialVideo;
   const status = video.status.toLowerCase();
   const isFailed = status === "failed";
   const isProcessing = status === "processing" || status === "queued";
-  const isCurrentlyRebuilding = rebuildingIds.includes(video.projectId || "");
-  const canRebuild = isFailed && currentBalance >= (video.creditsCharged || 0);
-  const displayStatus = isCurrentlyRebuilding && isFailed ? "queued" : status;
+  const displayStatus = status; 
 
   const showDuration = video.duration && video.duration > 0;
   const showCredits = video.creditsCharged && video.creditsCharged > 0;
@@ -101,41 +96,41 @@ const VideoCard = memo(function VideoCard({
                 </Button>
               </div>
             )}
-            <Badge className={`absolute top-2 right-2 ${getStatusBadge(displayStatus).color}`}>
+            <Badge className={`rounded-[20px] font-normal absolute top-2 right-2 ${getStatusBadge(displayStatus).color}`}>
               {displayStatus}
             </Badge>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-5 space-y-2">
             <Link href={`/generation/${video.projectId}/`}>
               <h2 className="text-2xl text-[#272830] font-medium truncate hover:text-[#6D58BB]">{projectName || "Untitled Project"}</h2>
             </Link>
             <p className="text-sm text-[#272830] line-clamp-1 italic min-h-[40px]">"{video.prompt?.replace(/<[^>]*>?/gm, "")}"</p>
-            <div className="flex items-center justify-between pt-3 border-t">
-              <div className="flex gap-2 text-[10px] font-bold uppercase">
-                {showDuration && <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded"><Clock className="w-3 h-3 inline mr-1" />{video.duration} sec</span>}
-                {showCredits && <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded"><CreditCard className="w-3 h-3 inline mr-1" />{video.creditsCharged}</span>}
+            <div className="flex items-center justify-between pt-3">
+              <div className="flex gap-2 text-[12px]">
+                {showDuration && <span className="bg-[#E2F2FE] text-[#2056E0] font-light px-2 py-1 rounded-[20px]"><Clock className="w-3 h-3 inline mr-1" />{video.duration} sec</span>}
+                {showCredits && <span className="bg-[#FFF4CA] text-[#8F3F01] font-light px-2 py-1 rounded-[20px]"><CreditCard className="w-3 h-3 inline mr-1" />{video.creditsCharged} credits</span>}
               </div>
               {dateTime && (
-                <div className="text-[10px] text-gray-400 font-medium uppercase text-right leading-tight">
+                <div className="text-[11px] text-[#272830] font-light text-right leading-tight">
                   <div>{dateTime.date}</div>
                   <div className="opacity-80">{dateTime.time}</div>
                 </div>
               )}
             </div>
             <div className="pt-3">
-              {isCurrentlyRebuilding || isProcessing ? (
-                <Button disabled className="w-full h-10 bg-blue-50 text-blue-600 rounded-[20px] gap-2 border-none">
+              {isProcessing ? (
+                <Button disabled className="w-full h-10 bg-[#E2F2FE] text-[#2056E0] rounded-[20px] gap-2 border-none">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" /> {status === "processing" ? "Processing..." : "Queued..."}
                 </Button>
               ) : status === "completed" ? (
                 <Link href={`/generation/${video.projectId}/`} className="w-full">
-                  <Button variant="ghost" className="w-full h-10 bg-[#E2F2FE] text-[#080936] rounded-[20px] hover:bg-[#6D58BB] hover:text-white transition-all">
+                  <Button variant="ghost" className="w-full h-10 bg-[#E2F2FE] text-[#080936] rounded-[20px] hover:bg-[#6D58BB] hover:text-white transition-all cursor-pointer">
                     View Project <ArrowRight className="w-3.5 h-3.5 ml-2" />
                   </Button>
                 </Link>
-              ) : isFailed && canRebuild ? (
-                <Button onClick={() => handleRebuild(video.tavusVideoId, video.projectId!)} className="w-full h-10 bg-[#6D58BB] text-white rounded-[20px] gap-2 hover:bg-[#080936]">
-                  <RefreshCw className="w-3.5 h-3.5" /> Rebuild Video
+              ) : isFailed ? (
+                <Button disabled className="w-full h-10 bg-red-50 text-red-600 rounded-[20px] border-none italic">
+                  Generation Failed
                 </Button>
               ) : (
                 <Button disabled className="w-full h-10 rounded-[20px] text-gray-400 italic bg-gray-50 border-none">Processing...</Button>
@@ -149,12 +144,9 @@ const VideoCard = memo(function VideoCard({
 });
 
 export default function Dashboard() {
-  const { mutate: globalMutate } = useSWRConfig();
   const [searchQuery, setSearchQuery] = useState("");
   const [videos, setVideos] = useState<UserVideo[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [currentBalance, setCurrentBalance] = useState<number>(0);
-  const [rebuildingIds, setRebuildingIds] = useState<string[]>([]);
   const [activePrompts, setActivePrompts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
@@ -163,26 +155,23 @@ export default function Dashboard() {
   const frozenVideoRef = useRef<UserVideo | null>(null);
 
   const { backendUser } = useBackendAuth();
-  const { mutate: mutateUser } = useUserProfile();
+  const { user: profile } = useUserProfile();
   const hasLoadedInitialData = useRef(false);
 
-  const handleOpenVideo = useCallback((v: UserVideo) => { frozenVideoRef.current = JSON.parse(JSON.stringify(v)); setIsVideoModalOpen(true); }, []);
+  const handleOpenVideo = useCallback((v: UserVideo) => { 
+    frozenVideoRef.current = JSON.parse(JSON.stringify(v)); 
+    setIsVideoModalOpen(true); 
+  }, []);
   const handleCloseVideo = useCallback(() => setIsVideoModalOpen(false), []);
 
   const loadDashboardData = useCallback(async (authToken: string, userId: string) => {
     try {
-      const [vRes, pRes, cRes] = await Promise.all([
+      const [vRes, pRes] = await Promise.all([
         getVideosByUser(authToken, userId),
-        getListProjects(authToken),
-        getCreditHistory(authToken, userId)
+        getListProjects(authToken)
       ]);
       setVideos(vRes.data || []);
       if (pRes.success) setProjects(pRes.data);
-      if (cRes?.success) {
-        setCurrentBalance(cRes.data.currentBalance);
-        // Sincronización ligera: Solo avisamos al Header que revalide su propia info
-        mutateUser(); 
-      }
       
       const promptsStr = localStorage.getItem("active_prompt_generations") || "[]";
       const genProjectsStr = localStorage.getItem("active_generation_projects") || "{}";
@@ -191,7 +180,7 @@ export default function Dashboard() {
       setActivePrompts(prompts.filter((p: any) => genProjects[p.projectId]?.activeStep === "PROMPT"));
 
     } catch (err) { console.error(err); } finally { setIsLoading(false); }
-  }, [mutateUser]);
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -199,57 +188,69 @@ export default function Dashboard() {
       if (!backendUser?.id) return;
       const authToken = await getAuthToken();
       setToken(authToken);
-      if (!hasLoadedInitialData.current) { await loadDashboardData(authToken, backendUser.id); hasLoadedInitialData.current = true; }
+      if (!hasLoadedInitialData.current) { 
+        await loadDashboardData(authToken, backendUser.id); 
+        hasLoadedInitialData.current = true; 
+      }
       interval = setInterval(() => {
-        const stored = localStorage.getItem("active_generation_projects");
-        if (stored && stored !== "{}") loadDashboardData(authToken, backendUser.id);
-      }, 10000);
+        const hasActiveTasks = localStorage.getItem("active_generation_projects") !== "{}";
+        const hasProcessingVideos = videos.some(v => ["processing", "queued", "pending"].includes(v.status?.toLowerCase()));
+        if (hasActiveTasks || hasProcessingVideos) {
+          loadDashboardData(authToken, backendUser.id);
+        }
+      }, 12000);
     }
     init();
     return () => clearInterval(interval);
-  }, [backendUser?.id, loadDashboardData]);
+  }, [backendUser?.id, loadDashboardData, videos]);
 
   const getStatusBadge = (s: string) => {
-    const v: any = { completed: "bg-green-100 text-green-800", processing: "bg-blue-100 text-blue-800", failed: "bg-red-100 text-red-800" };
-    return { color: v[s.toLowerCase()] || "bg-yellow-100 text-yellow-800" };
-  };
-
-  const handleRebuild = async (videoId: string, projectId: string) => {
-    if (!token) return;
-    setRebuildingIds(prev => [...prev, projectId]);
-    await reprocessVideo(token, videoId);
-    loadDashboardData(token, backendUser!.id);
+    const v: any = { completed: "bg-[#6D58BB] text-white", processing: "bg-[#E2F2FE] text-[#2056E0]", failed: "bg-red-100 text-red-800" };
+    return { color: v[s.toLowerCase()] || "bg-[#FFF4CA] text-[#8F3F01]" };
   };
 
   const getProjectName = (id: string | null) => projects.find(p => p.projectId === id)?.projectName || "";
 
-  // BÚSQUEDA CORREGIDA (Título + Prompt)
-  const filteredVideos = videos.filter(v => 
-    getProjectName(v.projectId).toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (v.prompt || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const filteredPrompts = activePrompts.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  // --- LÓGICA DE BÚSQUEDA CORREGIDA ---
+  const filteredVideos = videos.filter(v => {
+    const nameMatch = getProjectName(v.projectId).toLowerCase().includes(searchQuery.toLowerCase());
+    const promptMatch = (v.prompt || "").toLowerCase().includes(searchQuery.toLowerCase());
+    return nameMatch || promptMatch;
+  });
+
+  const filteredPrompts = activePrompts.filter(p => {
+    const nameMatch = (p.title || "").toLowerCase().includes(searchQuery.toLowerCase());
+    const promptMatch = (p.prompt || "").toLowerCase().includes(searchQuery.toLowerCase());
+    return nameMatch || promptMatch;
+  });
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] p-4">
       <AppHeader />
-      <main className="mx-auto py-16">
+      <main className="mx-auto py-16 px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-5xl font-medium text-[#080936]">Dashboard</h1>
-          <Link href="/inputs"><Button size="lg" className="rounded-xl bg-[#6D58BB] px-6 py-6 text-lg font-semibold text-white hover:bg-black"><Plus className="mr-2 h-5 w-5" /> Create new project</Button></Link>
+          <Link href="/inputs">
+            <Button size="lg" className="rounded-xl bg-[#6D58BB] px-6 py-6 text-xl font-normal text-white hover:bg-[#080936] cursor-pointer">
+              <Plus className="mr-2 h-5 w-5" /> Create new project
+            </Button>
+          </Link>
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Total videos", value: videos.length, icon: Video },
-            { label: "Available Credits", value: currentBalance, icon: CreditCard },
-            { label: "Articles", value: 0, icon: FileText },
+            { label: "Available Credits", value: profile?.currentCreditBalance ?? 0, icon: CreditCard },
+            { label: "Deliverables", value: videos.length * 5, icon: FileText },
             { label: "Landing Pages", value: 0, icon: Monitor },
           ].map((stat) => (
             <Card key={stat.label} className="border-1 bg-white shadow-none border-gray-200">
-              <CardContent className="px-6 h-24 flex flex-col justify-center">
-                <div className="mb-1 flex items-center justify-between"><p className="text-xs text-gray-500 uppercase tracking-widest">{stat.label}</p><stat.icon className="h-4 w-4 text-gray-900" /></div>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+              <CardContent className="px-6 flex flex-col justify-center">
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-sm text-gray-500">{stat.label}</p>
+                  <stat.icon className="h-4 w-4 text-[#080936]" />
+                </div>
+                <p className="text-4xl font-regular text-[#080936]">{stat.value}</p>
               </CardContent>
             </Card>
           ))}
@@ -258,8 +259,13 @@ export default function Dashboard() {
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-[#080936]">View projects</h2>
           <div className="relative w-80">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="rounded-full border-gray-300 bg-white pl-10 h-11" />
+            <Search className="absolute shadow-none left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input 
+              placeholder="Search by title or prompt..." 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              className="rounded-full shadow-none rounded-[14px] border-gray-300 bg-white pl-10 h-11" 
+            />
           </div>
         </div>
 
@@ -270,13 +276,19 @@ export default function Dashboard() {
                 <CardContent className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-[24px] border border-gray-200 py-24">
                   <h2 className="mb-2 text-5xl font-medium text-[#080936]">Create My First Video</h2>
                   <p className="mb-8 text-gray-500">PDFs, Word docs, and Web pages are ≈ 400 words each</p>
-                  <Link href="/inputs"><Button size="lg" className="rounded-xl bg-[#6D58BB] px-8 py-7 text-xl font-semibold text-white hover:bg-black">Start Creating Now <ArrowRight className="ml-2 h-6 w-6" /></Button></Link>
+                  <Link href="/inputs">
+                    <Button size="lg" className="rounded-xl bg-[#6D58BB] px-8 py-7 text-xl font-normal text-white hover:bg-[#080936] cursor-pointer">
+                      Start Creating Now <ArrowRight className="ml-2 h-6 w-6" />
+                    </Button>
+                  </Link>
                 </CardContent>
               ) : (filteredVideos.length === 0 && filteredPrompts.length === 0) ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center bg-gray-50 rounded-[24px] border-2 border-dashed border-gray-200 py-20">
                   <SearchX className="h-16 w-16 text-gray-300 mb-4" />
                   <h3 className="text-2xl font-medium text-[#080936]">No results for "{searchQuery}"</h3>
-                  <Button variant="link" onClick={() => setSearchQuery("")} className="mt-4 text-[#6D58BB] font-semibold underline">Clear search</Button>
+                  <Button variant="link" onClick={() => setSearchQuery("")} className="mt-4 text-[#6D58BB] font-semibold underline cursor-pointer">
+                    Clear search
+                  </Button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -284,15 +296,46 @@ export default function Dashboard() {
                     {filteredPrompts.map((p) => (
                       <motion.div key={p.projectId} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                         <Card className="border-1 bg-white p-0 shadow-none border-gray-200 h-full overflow-hidden">
-                          <div className="aspect-video bg-gradient-to-br from-[#6D58BB]/10 to-[#E2F2FE] flex items-center justify-center"><RefreshCw className="w-10 h-10 text-[#6D58BB] animate-spin" /></div>
-                          <div className="p-5"><h2 className="text-2xl text-[#6D58BB] font-medium truncate">{p.title}</h2><div className="flex items-center gap-2 mt-2"><Sparkles className="w-3.5 h-3.5 text-amber-500" /><p className="text-sm text-gray-400 italic">Generating script...</p></div></div>
+                          <div className="aspect-video bg-gradient-to-br from-[#6D58BB]/10 to-[#E2F2FE] flex items-center justify-center">
+                            <RefreshCw className="w-10 h-10 text-[#6D58BB] animate-spin" />
+                          </div>
+                          <div className="p-5">
+                            <h2 className="text-2xl text-[#6D58BB] font-medium truncate">{p.title}</h2>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                              <p className="text-sm text-gray-400 italic">Generating script...</p>
+                            </div>
+                          </div>
                         </Card>
                       </motion.div>
                     ))}
                     {filteredVideos.map((v) => (
-                      <VideoCard key={v.videoId} video={v} token={token} projectName={getProjectName(v.projectId)} rebuildingIds={rebuildingIds} currentBalance={currentBalance} handleRebuild={handleRebuild} onOpenVideo={handleOpenVideo} getStatusBadge={getStatusBadge} />
+                      <VideoCard 
+                        key={v.videoId} 
+                        video={v} 
+                        token={token} 
+                        projectName={getProjectName(v.projectId)} 
+                        currentBalance={profile?.currentCreditBalance ?? 0} 
+                        onOpenVideo={handleOpenVideo} 
+                        getStatusBadge={getStatusBadge} 
+                      />
                     ))}
                   </AnimatePresence>
+                </div>
+              )}
+
+              {/* BLOQUE DE INVITACIÓN FINAL */}
+              {!isLoading && videos.length > 0 && searchQuery === "" && (
+                <div className="mt-12">
+                  <CardContent className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-[24px] border border-gray-200 py-16">
+                    <h2 className="mb-2 text-5xl font-medium text-[#080936]">Create another project</h2>
+                    <p className="mb-8 text-gray-500">PDFs, Word docs, and Web pages are ≈ 400 words each</p>
+                    <Link href="/inputs">
+                      <Button size="lg" className="rounded-xl bg-[#6D58BB] px-14 py-7 text-xl font-normal text-white hover:bg-[#080936] cursor-pointer">
+                        Create New Project <Plus className="ml-2 h-6 w-6" />
+                      </Button>
+                    </Link>
+                  </CardContent>
                 </div>
               )}
             </>
@@ -300,7 +343,10 @@ export default function Dashboard() {
         </div>
       </main>
       {isVideoModalOpen && frozenVideoRef.current && (
-        <VideoPreviewModal videoHtml={frozenVideoRef.current.embed || (frozenVideoRef.current as any).metaData?.embed} onClose={handleCloseVideo} />
+        <VideoPreviewModal 
+          videoHtml={frozenVideoRef.current.embed || (frozenVideoRef.current as any).metaData?.embed} 
+          onClose={handleCloseVideo} 
+        />
       )}
       <AppFooter />
     </div>

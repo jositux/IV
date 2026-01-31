@@ -334,7 +334,7 @@ export default function GenerationPage() {
           <motion.button 
             initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="fixed bottom-8 right-8 w-14 h-14 bg-[#080936] text-white rounded-full flex items-center justify-center shadow-xl z-[9999]"
+            className="fixed bottom-8 right-8 w-14 h-14 bg-[#080936] text-white rounded-full flex items-center justify-center shadow-xl z-[9999] cursor-pointer"
           >
             <ArrowUp className="w-6 h-6" />
           </motion.button>

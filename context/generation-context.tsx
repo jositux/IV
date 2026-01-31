@@ -249,14 +249,14 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
             </div>
             <DialogTitle className="text-2xl font-bold text-[#080936]">Video Ready!</DialogTitle>
             <DialogDescription className="text-[#3E4462] mt-2 mb-6">
-              Your video and assets are being finalized. Check your dashboard.
+              Your video and assets are being finalized. Check your project.
             </DialogDescription>
             
             {/* LINK: Dynamically points to the project that just finished */}
             <Link href={lastCompletedProjectId ? `/generation/${lastCompletedProjectId}` : "#"} className="w-full">
               <Button
                 onClick={() => setShowSuccessModal(false)}
-                className="w-full bg-[#6D58BB] hover:bg-[#080936] text-white h-12 rounded-xl flex items-center gap-2"
+                className="w-full bg-[#6D58BB] hover:bg-[#080936] text-white h-12 rounded-xl flex items-center gap-2 cursor-pointer"
               >
                 Go to Project <ArrowRight className="w-4 h-4" />
               </Button>
