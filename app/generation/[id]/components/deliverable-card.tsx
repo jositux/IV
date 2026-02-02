@@ -13,14 +13,25 @@ interface DeliverableCardProps {
   html?: string | null;
   code?: string | null;
   links?: any[];
+  prompt?: string; // Nuevo: El texto del script o prompt
   defaultExpanded?: boolean;
 }
 
-export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defaultExpanded = false }: DeliverableCardProps) => {
+export const DeliverableCard = ({ 
+  id, 
+  title, 
+  icon: Icon, 
+  html, 
+  code, 
+  links, 
+  prompt, 
+  defaultExpanded = false 
+}: DeliverableCardProps) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isCopied, setIsCopied] = useState(false);
 
-  const contentToExport = html || code || "";
+  // El contenido principal para exportar/descargar prioriza HTML, luego Code, luego Prompt
+  const contentToExport = html || code || prompt || "";
 
   const handleMainCopy = async () => {
     if (!contentToExport) return;
@@ -31,11 +42,12 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
 
   const handleDownload = () => {
     if (!contentToExport) return;
-    const blob = new Blob([contentToExport], { type: html ? 'text/html' : 'text/plain' });
+    const isHtml = !!html;
+    const blob = new Blob([contentToExport], { type: isHtml ? 'text/html' : 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${title.toLowerCase().replace(/\s+/g, '-')}.${html ? 'html' : 'txt'}`;
+    a.download = `${title.toLowerCase().replace(/\s+/g, '-')}.${isHtml ? 'html' : 'txt'}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -54,14 +66,13 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
         </div>
         
         <div className="flex items-center gap-2">
-          {/* BOTONES DE ACCIÓN */}
-          {(html || code) && (
+          {/* BOTONES DE ACCIÓN RÁPIDA (Copy/Download del contenido principal) */}
+          {contentToExport && (
             <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-100">
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={handleMainCopy} 
-                title={isCopied ? "¡Copiado!" : "Copiar contenido"}
                 className={`h-9 px-4 rounded-lg gap-2 cursor-pointer transition-all duration-300 ${
                   isCopied 
                   ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" 
@@ -87,7 +98,6 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
                 variant="ghost" 
                 size="sm" 
                 onClick={handleDownload} 
-                title="Descargar archivo"
                 className="h-9 px-4 text-gray-500 hover:text-indigo-600 hover:bg-white cursor-pointer rounded-lg gap-2 transition-all"
               >
                 <Download className="w-4 h-4" />
@@ -96,16 +106,15 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
             </div>
           )}
           
-          {/* BOTÓN COLAPSO DINÁMICO (+ / -) */}
+          {/* BOTÓN COLAPSO DINÁMICO */}
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => setIsExpanded(!isExpanded)}
-            title={isExpanded ? "Contraer sección" : "Expandir sección"}
             className={`h-10 w-10 rounded-3xl border border-gray-100 cursor-pointer transition-all duration-300 ${
               isExpanded 
               ? "bg-[#080936] text-white hover:bg-[#15175a]" 
-              : "bg-[#080936] text-white hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100"
+              : "bg-white text-gray-400 hover:text-indigo-600 hover:border-indigo-100"
             }`}
           >
             <motion.div
@@ -113,11 +122,7 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
               animate={{ rotate: isExpanded ? 180 : 0 }}
               transition={{ duration: 0.3 }}
             >
-              {isExpanded ? (
-                <Minus className="w-5 h-5 text-white" /> // Siempre blanco cuando el fondo es oscuro
-              ) : (
-                <Plus className="w-5 h-5" />
-              )}
+              {isExpanded ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
             </motion.div>
           </Button>
         </div>
@@ -133,8 +138,13 @@ export const DeliverableCard = ({ id, title, icon: Icon, html, code, links, defa
             transition={{ duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] }}
           >
             <div className="bg-white border-t border-gray-50">
-              {links && <LinkGroup links={links} />}
+              {/* Sección de Links y/o Texto (Prompt) */}
+              {(links || prompt) && <LinkGroup links={links} prompt={prompt} />}
+              
+              {/* Sección de Visualización HTML (si aplica) */}
               {html && <HTMLViewer html={html} />}
+
+              {/* Sección de Bloque de Código (si aplica) */}
               {code && (
                 <div className="p-6 bg-[#Fcfdff]">
                   <pre className="bg-[#080936] text-blue-50 p-6 rounded-2xl text-[12px] overflow-x-auto font-mono leading-relaxed border border-[#1a2b4b] shadow-inner">
