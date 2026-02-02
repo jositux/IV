@@ -277,7 +277,7 @@ export default function GenerationPage() {
 
             <div id="urls-script" className="deliverable-card-container scroll-mt-10">
               <DeliverableCard 
-                title="Direct Links & Scripts" 
+                title="Video Direct Link & Embed Code" 
                 icon={FileCode} 
                 links={[
                   { label: "Direct Playback URL", value: videoData?.metaData?.directPlay || "", icon: LinkIcon },
@@ -288,7 +288,7 @@ export default function GenerationPage() {
 
             <div id="geo-analysis" className="deliverable-card-container scroll-mt-10">
               {isAssetReady("GEO_OPTIMIZATION_REPORT_HTML") ? (
-                <DeliverableCard title="GEO Optimization Strategy" icon={Sparkles} defaultExpanded={true} html={getDeliverableContent("GEO_OPTIMIZATION_REPORT_HTML")} />
+                <DeliverableCard title="How Your Video Content Is Engineered for Al Search Dominance" icon={Sparkles} defaultExpanded={true} html={getDeliverableContent("GEO_OPTIMIZATION_REPORT_HTML")} />
               ) : (
                 <LoadingAsset title="GEO Optimization Report" />
               )}
@@ -296,7 +296,7 @@ export default function GenerationPage() {
 
             <div id="add-website" className="deliverable-card-container scroll-mt-10">
               {isAssetReady("CUSTOMER_INSTRUCTIONS_HTML") ? (
-                <DeliverableCard title="Customer Implementation Guide" icon={BookOpen} defaultExpanded={true} html={getDeliverableContent("CUSTOMER_INSTRUCTIONS_HTML")} />
+                <DeliverableCard title="How to Add Your Sticky Video to Your Website - All Platforms" icon={BookOpen} defaultExpanded={true} html={getDeliverableContent("CUSTOMER_INSTRUCTIONS_HTML")} />
               ) : (
                 <LoadingAsset title="Implementation Guide" />
               )}
@@ -304,7 +304,7 @@ export default function GenerationPage() {
 
             <div id="sticky-action" className="deliverable-card-container scroll-mt-10">
               {isAssetReady("COMPLETE_HTML_CODE") ? (
-                <DeliverableCard title="Sticky Player Implementation" icon={MonitorPlay} code={getDeliverableContent("COMPLETE_HTML_CODE")} />
+                <DeliverableCard title="See Your Sticky Video in Action" icon={MonitorPlay} code={getDeliverableContent("COMPLETE_HTML_CODE")} />
               ) : (
                 <LoadingAsset title="Sticky Player Code" />
               )}
@@ -312,7 +312,7 @@ export default function GenerationPage() {
 
             <div id="seo-package" className="deliverable-card-container scroll-mt-10">
               {isAssetReady("SEO_GEO_OPTIMIZATION_PACKAGE_HTML") ? (
-                <DeliverableCard title="SEO Metadata Package" icon={Wrench} defaultExpanded={true} html={getDeliverableContent("SEO_GEO_OPTIMIZATION_PACKAGE_HTML")} />
+                <DeliverableCard title="GEO & SEO Optimization Package" icon={Wrench} defaultExpanded={true} html={getDeliverableContent("SEO_GEO_OPTIMIZATION_PACKAGE_HTML")} />
               ) : (
                 <LoadingAsset title="SEO Metadata" />
               )}
@@ -320,7 +320,7 @@ export default function GenerationPage() {
 
             <div id="keyword-analysis" className="deliverable-card-container scroll-mt-10">
               {isAssetReady("KEYWORD_RESEARCH_HTML") ? (
-                <DeliverableCard title="Keyword Gap Analysis" icon={Target} defaultExpanded={true} html={getDeliverableContent("KEYWORD_RESEARCH_HTML")} />
+                <DeliverableCard title="Keyword Research & Content Gap Analysis" icon={Target} defaultExpanded={true} html={getDeliverableContent("KEYWORD_RESEARCH_HTML")} />
               ) : (
                 <LoadingAsset title="Keyword Gap Analysis" />
               )}

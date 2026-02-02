@@ -130,7 +130,7 @@ export function useVideoCreator() {
       });
 
       if (response.success) {
-        const newGen = { jobId: response.data.jobId, projectId: currentProjectId, title: projectName.trim(), status: "active" };
+        const newGen = { jobId: response.data.jobId, topic:topic ,projectId: currentProjectId, title: projectName.trim(), replicaId: selectedReplica , status: "active" };
         const existing = JSON.parse(localStorage.getItem("active_prompt_generations") || "[]");
         localStorage.setItem("active_prompt_generations", JSON.stringify([...existing, newGen]));
 

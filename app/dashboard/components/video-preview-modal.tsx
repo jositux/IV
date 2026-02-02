@@ -46,7 +46,7 @@ export const VideoPreviewModal = memo(function VideoPreviewModal({
           {/* Botón de Cierre DENTRO del video - Sin líneas negras */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-[130] w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition-all border-none outline-none"
+            className="absolute top-4 right-4 z-[130] w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition-all border-none outline-none cursor-pointer"
           >
             <X className="w-6 h-6 text-white stroke-[2.5px]" />
           </button>
