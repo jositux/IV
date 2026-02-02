@@ -38,7 +38,7 @@ export const LinkGroup = ({ links }: { links: LinkItem[] }) => {
               variant="outline" 
               size="sm" 
               onClick={() => handleCopy(link.value, idx)}
-              className="bg-white border-gray-200 hover:border-indigo-200 min-w-[100px] h-9 transition-all"
+              className="bg-white border-gray-200 hover:border-indigo-200 min-w-[100px] h-9 transition-all cursor-pointer"
             >
               {copiedIdx === idx ? (
                 <><Check className="w-3.5 h-3.5 text-green-500 mr-2" /> <span className="text-[10px] font-bold text-green-500">COPIED</span></>
