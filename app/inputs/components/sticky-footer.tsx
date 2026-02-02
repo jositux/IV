@@ -38,7 +38,7 @@ export function StickyFooter({
             <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">Required</p>
             <p className="text-2xl font-semibold text-[#080936]">
               {totalCredits} 
-              <span className="text-xs font-normal text-gray-400 uppercase ml-1">cr.</span>
+              <span className="text-xs font-normal text-gray-400 ml-1">credits</span>
             </p>
           </div>
           
@@ -51,7 +51,7 @@ export function StickyFooter({
               className="text-2xl font-semibold"
             >
               {isReady ? availableCredits : "—"} 
-              <span className="text-xs font-normal text-gray-400 uppercase ml-1">av.</span>
+              <span className="text-xs font-normal text-gray-400 ml-1">credits</span>
             </motion.p>
           </div>
         </div>

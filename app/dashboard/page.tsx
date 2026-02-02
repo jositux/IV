@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, memo } from "react";
 import {
-  Video, FileText, Monitor, Search, ArrowRight, Play, Clock, CreditCard, RefreshCw, Plus, Sparkles,
+  Video, FileText, Monitor, Search, ArrowRight, Play, Clock, CreditCard, RefreshCw, Plus, Sparkles, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import useSWR from "swr";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useBackendAuth } from "@/hooks/use-backend-auth";
-import { useUserProfile } from "@/hooks/use-user-profile"; // Importante
+import { useUserProfile } from "@/hooks/use-user-profile";
 import { AppHeader } from "@/components/shared/app-header";
 import { AppFooter } from "@/components/shared/app-footer";
 import { getVideosByUser, type UserVideo } from "@/services/video/video-by-user";
@@ -34,6 +34,22 @@ const projectFetcher = async ([_, token, projectId]: [string, string, string]) =
   const res = await getProjectById(token, projectId);
   return res.data;
 };
+
+// --- SKELETON COMPONENT ---
+const VideoCardSkeleton = () => (
+  <div className="bg-white rounded-[24px] border border-gray-100 overflow-hidden shadow-none h-full">
+    <div className="aspect-video bg-gray-100 animate-pulse" />
+    <div className="p-5 space-y-4">
+      <div className="h-7 bg-gray-100 animate-pulse rounded-md w-3/4" />
+      <div className="h-4 bg-gray-50 animate-pulse rounded-md w-full" />
+      <div className="flex justify-between items-center pt-2">
+        <div className="h-6 bg-gray-100 animate-pulse rounded-full w-20" />
+        <div className="h-6 bg-gray-100 animate-pulse rounded-md w-16" />
+      </div>
+      <div className="h-10 bg-gray-50 animate-pulse rounded-[20px] w-full mt-4" />
+    </div>
+  </div>
+);
 
 // --- VIDEO CARD COMPONENT ---
 const VideoCard = memo(function VideoCard({ 
@@ -64,10 +80,10 @@ const VideoCard = memo(function VideoCard({
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}>
-      <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full transition-shadow hover:shadow-md">
+      <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full transition-shadow hover:shadow-md rounded-[24px] overflow-hidden">
         <CardContent className="p-0">
           <div className="relative aspect-video">
-            <img src={`/assets/avatars/${video.replicaId || "default"}.jpg`} className="w-full h-full object-cover object-top rounded-t-lg" alt="" />
+            <img src={`/assets/avatars/${video.replicaId || "default"}.jpg`} className="w-full h-full object-cover object-top" alt="" />
             {status === "completed" && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button className="rounded-full bg-white text-gray-900 w-16 h-16 shadow-lg cursor-pointer" onClick={() => onOpenVideo(video)}>
@@ -118,14 +134,11 @@ export default function Dashboard() {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   
   const { backendUser } = useBackendAuth();
-  
-  // EXTRAEMOS user Y mutate DEL HOOK OFICIAL
   const { user: profile, mutate: mutateUserProfile } = useUserProfile();
   
   const frozenVideoRef = useRef<UserVideo | null>(null);
   const hasLoadedInitialData = useRef(false);
 
-  // Stats: Solo Completed
   const totalCompletedCount = videos.filter(v => v.status?.toLowerCase() === "completed").length;
 
   const handleOpenVideo = useCallback((v: UserVideo) => { 
@@ -149,14 +162,9 @@ export default function Dashboard() {
     } catch (err) { console.error(err); } finally { setIsLoading(false); }
   }, []);
 
-  // ESTA FUNCIÓN AHORA SÍ DISPARA LA ACTUALIZACIÓN REAL
   const handleFinalizedSinc = useCallback(async () => {
     if (token && backendUser?.id) {
-      // 1. Recarga local de videos para las stats del Dashboard
       await loadDashboardData(token, backendUser.id);
-      
-      // 2. Dispara el mutate oficial del hook que comparten el Header y Dashboard
-      // Esto fuerza a SWR a pedir el perfil de nuevo con los créditos actualizados
       mutateUserProfile();
     }
   }, [token, backendUser?.id, loadDashboardData, mutateUserProfile]);
@@ -184,9 +192,19 @@ export default function Dashboard() {
   };
 
   const getProjectName = (id: string | null) => projects.find(p => p.projectId === id)?.projectName || "";
-  const filteredVideos = videos.filter(v => getProjectName(v.projectId).toLowerCase().includes(searchQuery.toLowerCase()) || (v.prompt || "").toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredPrompts = activePrompts.filter(p => (p.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || (p.prompt || "").toLowerCase().includes(searchQuery.toLowerCase()));
+  
+  // Filtrado de videos y prompts
+  const filteredVideos = videos.filter(v => 
+    getProjectName(v.projectId).toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (v.prompt || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredPrompts = activePrompts.filter(p => 
+    (p.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (p.topic || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const hasContent = videos.length > 0 || activePrompts.length > 0;
+  const hasNoResults = searchQuery && filteredVideos.length === 0 && filteredPrompts.length === 0;
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] p-4">
@@ -212,7 +230,7 @@ export default function Dashboard() {
             { label: "Landing Pages", value: 0, icon: Monitor }
           ].map((stat, index) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-              <Card className="border-1 bg-white shadow-none border-gray-200">
+              <Card className="border-1 bg-white shadow-none border-gray-200 rounded-[24px]">
                 <CardContent className="px-6 flex flex-col justify-center">
                   <div className="mb-1 flex items-center justify-between"><p className="text-sm text-gray-500">{stat.label}</p><stat.icon className="h-4 w-4 text-[#080936]" /></div>
                   <p className="text-4xl font-regular text-[#080936]">{stat.value}</p>
@@ -227,20 +245,33 @@ export default function Dashboard() {
             <h2 className="text-2xl font-semibold text-[#080936]">View projects</h2>
             <div className="relative w-80">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="rounded-[14px] border-gray-300 bg-white pl-10 h-11 shadow-none" />
+              <Input 
+                placeholder="Search projects..." 
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
+                className="rounded-[14px] border-gray-300 bg-white pl-10 h-11 shadow-none focus-visible:ring-1 focus-visible:ring-[#6D58BB]" 
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
         )}
 
         <div className="min-h-[400px]">
-          {isLoading && hasContent ? (
+          {isLoading && !hasLoadedInitialData.current ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map((i) => <div key={i} className="bg-white aspect-video animate-pulse rounded-[24px] border border-gray-100" />)}
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <VideoCardSkeleton key={i} />)}
              </div>
           ) : (
             <>
               {!hasContent && !isLoading ? (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                <motion.div initial={{ opacity: 0, scale:0.95 }} animate={{ opacity: 1, scale: 1 }}>
                   <CardContent className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-[24px] border border-gray-200 py-24">
                     <h2 className="mb-2 text-5xl font-medium text-[#080936]">Create My First Video</h2>
                     <p className="mb-8 text-gray-500">PDFs, Word docs, and Web pages are ≈ 400 words each</p>
@@ -251,15 +282,35 @@ export default function Dashboard() {
                     </Link>
                   </CardContent>
                 </motion.div>
+              ) : hasNoResults ? (
+                <motion.div 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  className="flex flex-col items-center justify-center py-20 text-center"
+                >
+                  <div className="bg-gray-100 p-6 rounded-full mb-4">
+                    <Search className="h-10 w-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-medium text-[#080936]">No results for "{searchQuery}"</h3>
+                  <p className="text-gray-500 mt-2">Try checking the spelling or using different keywords.</p>
+                  <Button 
+                    variant="link" 
+                    onClick={() => setSearchQuery("")}
+                    className="mt-4 text-[#6D58BB] font-semibold cursor-pointer"
+                  >
+                    Clear search
+                  </Button>
+                </motion.div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <AnimatePresence mode="popLayout">
-                    {activePrompts.map((p) => (
+                    {/* PROMPT STATE (QUEUED) */}
+                    {filteredPrompts.map((p) => (
                       <motion.div key={p.projectId} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                        <Card className="border-1 bg-white p-0 shadow-none border-gray-200 h-full overflow-hidden">
+                        <Card className="border-1 bg-white p-0 shadow-none border-gray-200 h-full overflow-hidden rounded-[24px]">
                           <CardContent className="p-0">
                             <div className="relative aspect-video">
-                              <img src={`/assets/avatars/${p.replicaId || "default"}.jpg`} className="w-full h-full object-cover object-top rounded-t-lg grayscale-[0.2]" alt="" />
+                              <img src={`/assets/avatars/${p.replicaId || "default"}.jpg`} className="w-full h-full object-cover object-top grayscale-[0.2]" alt="" />
                               <Badge className="rounded-[20px] font-normal absolute top-2 right-2 bg-[#FFF4CA] text-[#8F3F01]">queued</Badge>
                             </div>
                             <div className="p-5 space-y-2">
@@ -279,6 +330,8 @@ export default function Dashboard() {
                         </Card>
                       </motion.div>
                     ))}
+
+                    {/* VIDEOS LIST */}
                     {filteredVideos.map((v) => (
                       <VideoCard 
                         key={v.videoId} 
@@ -290,6 +343,21 @@ export default function Dashboard() {
                         onFinalized={handleFinalizedSinc}
                       />
                     ))}
+
+                    {/* BLOQUE FINAL: CREATE NEW PROJECT */}
+                    {!searchQuery && (
+                      <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                        <Link href="/inputs" className="h-full block group cursor-pointer">
+                          <Card className="border-2 border-dashed border-gray-200 bg-transparent h-full min-h-[380px] flex flex-col items-center justify-center p-8 transition-all hover:border-[#6D58BB] hover:bg-white rounded-[24px]">
+                            <div className="rounded-full bg-gray-100 p-4 mb-4 group-hover:bg-[#E2F2FE] transition-colors">
+                              <Plus className="h-8 w-8 text-gray-400 group-hover:text-[#6D58BB]" />
+                            </div>
+                            <h3 className="text-xl font-medium text-gray-900 group-hover:text-[#6D58BB]">Create new project</h3>
+                            <p className="text-sm text-gray-500 text-center mt-2">Scale your reach with another high-converting video</p>
+                          </Card>
+                        </Link>
+                      </motion.div>
+                    )}
                   </AnimatePresence>
                 </div>
               )}

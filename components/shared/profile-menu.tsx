@@ -147,7 +147,7 @@ export function ProfileMenu() {
         </DropdownMenu>
       ) : (
         <Link href="/login">
-          <Button variant="ghost" className="text-[16px] text-white">
+          <Button variant="ghost" className="text-[16px] text-white cursor-pointer">
             Log In / Sign Up
           </Button>
         </Link>
