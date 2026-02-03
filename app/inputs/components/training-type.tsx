@@ -53,10 +53,10 @@ export function TrainingTypeCard({
   return (
     <Card className="bg-white rounded-[20px] gap-2 mb-16 border-1 border-[#DADADA] shadow-none px-4 py-4">
       <h2 className="text-2xl text-[#272830] font-normal mb-0 block">
-        Select Training Type
+      Select Additional Products to Maximize Your Content Creation
       </h2>
       <p className="text-sm text-gray-600">
-        {"Select a training focus to customize how the AI generates your content."}
+        {"Extend your video's reach with these complementary content packages. Each product uses your video content to create additional marketing assets—all generated from the same inputs you've already provided."}
       </p>
 
       <div className="flex flex-wrap gap-3 mb-4 mt-4">
@@ -67,8 +67,8 @@ export function TrainingTypeCard({
             onClick={() => handleSelect(option)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
               trainingType === option
-                ? "bg-[#E8F4FD] text-[#1E88E5] border border-[#1E88E5]"
-                : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
+                ? "bg-[#E2F2FE] text-[#272830] border border-[#272830]"
+                : "bg-white text-gray-700 border border-gray-200 hover:border-[#272830] hover:bg-[#E2F2FE]"
             }`}
           >
             {option}
