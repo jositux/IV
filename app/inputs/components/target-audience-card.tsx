@@ -72,7 +72,7 @@ export function TargetAudienceCard({
             onClick={() => toggleAudience(option)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all${
               targetAudience.includes(option)
-                ? "bg-[#E8F4FD] text-[#1E88E5] border border-[#1E88E5]"
+                ? "bg-[#E8F4FD] text-[#272830] border border-[#272830]"
                 : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
             }`}
           >
