@@ -135,6 +135,8 @@ export default function Dashboard() {
   
   const { backendUser } = useBackendAuth();
   const { user: profile, mutate: mutateUserProfile } = useUserProfile();
+
+  const { realBalance, projectedBalance } = useUserProfile();
   
   const frozenVideoRef = useRef<UserVideo | null>(null);
   const hasLoadedInitialData = useRef(false);
@@ -225,7 +227,7 @@ export default function Dashboard() {
         <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Total videos", value: totalCompletedCount, icon: Video }, 
-            { label: "Available Credits", value: profile?.currentCreditBalance ?? 0, icon: CreditCard }, 
+            { label: "Available Credits", value: projectedBalance ?? 0, icon: CreditCard }, 
             { label: "Deliverables", value: totalCompletedCount * 5, icon: FileText }, 
             { label: "Landing Pages", value: 0, icon: Monitor }
           ].map((stat, index) => (
