@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
 import useSWR from "swr";
 import { getAuthToken } from "@/lib/get-auth-token";
 import { getPromptStatus } from "@/services/video/prompt-status";
@@ -15,12 +15,16 @@ import { generateSeoGeoPackage } from "@/services/deliverables/generate-seo-gio-
 import { generateCustomerInstructions } from "@/services/deliverables/generate-customer-instructions";
 import { getHtmlDeliverableStatus } from "@/services/deliverables/get-html-deliverable-status";
 
+// Hooks
+import { useUserProfile } from "@/hooks/use-user-profile";
+
+// UI Components
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-type Step = "PROMPT" | "VIDEO" | "DELIVERABLES" | "COMPLETED";
+type Step = "PROMPT" | "VIDEO" | "VIDEO_PROCESSING" | "DELIVERABLES" | "COMPLETED";
 
 interface ProjectState {
   projectId: string;
@@ -29,9 +33,10 @@ interface ProjectState {
   deliverableJobs: string[];
   completedDeliverables: string[];
   error: string | null;
-  // PERSISTENCE OF INPUT DATA
   keywords?: string;
   targetAudience?: string;
+  duration: number;
+  initialBalanceSnapshot: number; 
 }
 
 interface PromptStatusData {
@@ -45,7 +50,7 @@ interface GenerationContextType {
     jobId: string, 
     userId: string, 
     replicaId: string, 
-    options: { projectId: string; keywords?: string; targetAudience?: string }
+    options: { projectId: string; keywords?: string; targetAudience?: string; duration?: number }
   ) => void;
   removeProject: (projectId: string) => void;
   clearAllProjects: () => void;
@@ -56,91 +61,79 @@ interface GenerationContextType {
 const GenerationContext = createContext<GenerationContextType | undefined>(undefined);
 
 export function GenerationProvider({ children }: { children: React.ReactNode }) {
-  const [projects, setProjects] = useState<Record<string, ProjectState>>({});
+  const { realBalance } = useUserProfile();
+
+  const [projects, setProjects] = useState<Record<string, ProjectState>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("active_generation_projects");
+      try {
+        return saved ? JSON.parse(saved) : {};
+      } catch (e) { return {}; }
+    }
+    return {};
+  });
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  // TRACKING: Stores the ID of the specific project that just finished to build the dynamic link
   const [lastCompletedProjectId, setLastCompletedProjectId] = useState<string | null>(null);
 
-  // Load active projects from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("active_generation_projects");
-    if (saved) setProjects(JSON.parse(saved));
-  }, []);
-
-  // Persist projects to localStorage whenever the state changes
   useEffect(() => {
     localStorage.setItem("active_generation_projects", JSON.stringify(projects));
   }, [projects]);
 
-  // Automatic cleanup of finished or failed projects after 30 seconds
-  useEffect(() => {
-    const finishedIds = Object.values(projects)
-      .filter(p => p.activeStep === "COMPLETED" || p.error !== null)
-      .map(p => p.projectId);
+  const allProjects = useMemo(() => Object.values(projects), [projects]);
 
-    if (finishedIds.length > 0) {
-      const timer = setTimeout(() => {
-        setProjects(prev => {
-          const newState = { ...prev };
-          finishedIds.forEach(id => {
-            delete newState[id];
-            localStorage.removeItem(`u_${id}`);
-            localStorage.removeItem(`r_${id}`);
-          });
-          return newState;
-        });
-      }, 30000);
-      return () => clearTimeout(timer);
+  // Helper para limpiar el prompt temporal del Dashboard
+  const cleanPromptFromDashboard = useCallback((projectId: string) => {
+    const stored = localStorage.getItem("active_prompt_generations");
+    if (stored) {
+      const prompts = JSON.parse(stored);
+      const filtered = prompts.filter((p: any) => p.projectId !== projectId);
+      localStorage.setItem("active_prompt_generations", JSON.stringify(filtered));
+      // Disparar evento para que el Dashboard reaccione instantáneamente
+      window.dispatchEvent(new Event("storage"));
     }
-  }, [projects]);
+  }, []);
 
-  // Memoize the list of projects that require active polling
-  const activeProjectsList = useMemo(() => 
-    Object.values(projects).filter(p => p.activeStep !== "COMPLETED" && p.error === null), 
-  [projects]);
-
-  // SWR Global Polling: Executes every 5 seconds if there are active projects
-  useSWR(activeProjectsList.length > 0 ? "global-polling" : null, async () => {
+  // Polling Engine
+  useSWR(allProjects.length > 0 ? "global-polling" : null, async () => {
     const token = await getAuthToken();
     if (!token) return;
 
     const updatedProjects = { ...projects };
     let hasChanges = false;
 
-    for (const project of activeProjectsList) {
+    for (const project of allProjects) {
       const { projectId, activeStep, currentJobId, deliverableJobs, completedDeliverables, keywords, targetAudience } = project;
 
-      // Handle Prompt and Video status tracking
-      if ((activeStep === "PROMPT" || activeStep === "VIDEO") && currentJobId) {
+      // Limpieza en caso de error
+      if (project.error) {
+        delete updatedProjects[projectId];
+        localStorage.removeItem(`u_${projectId}`);
+        localStorage.removeItem(`r_${projectId}`);
+        cleanPromptFromDashboard(projectId);
+        hasChanges = true;
+        continue;
+      }
+
+      // 1. PROMPT -> VIDEO -> DELIVERABLES
+      if ((activeStep === "PROMPT" || activeStep === "VIDEO_PROCESSING") && currentJobId) {
         const res = activeStep === "PROMPT" 
           ? await getPromptStatus(token, currentJobId) 
           : await getVideoStatus(token, currentJobId);
         
-        if (res?.success && res.data.status === "failed") {
-          hasChanges = true;
-          updatedProjects[projectId].error = `${activeStep} failed on server`;
-          updatedProjects[projectId].currentJobId = null;
-          continue; 
-        }
-
         if (res?.success && res.data.status === "completed") {
           hasChanges = true;
-          
+
           if (activeStep === "PROMPT") {
             const scriptId = (res.data as PromptStatusData).scriptId;
             const userId = localStorage.getItem(`u_${projectId}`) || "";
             const replicaId = localStorage.getItem(`r_${projectId}`) || "";
             
             try {
-              // Trigger video rendering and deliverable generation in parallel
+              // Disparamos todo el paquete de generación
               const [videoRes, ...delivRes] = await Promise.all([
                 generateVideoFromScript(token, { 
-                    scriptId, 
-                    userId, 
-                    replicaId, 
-                    projectId, 
-                    keywords, 
-                    targetAudience, 
+                    scriptId, userId, replicaId, projectId, keywords, targetAudience, 
                     options: { waitForCompletion: false } 
                 }),
                 generateCompleteHtmlCode(token, { scriptId, projectId }),
@@ -151,27 +144,28 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
               ]);
 
               if (videoRes.success) {
-                updatedProjects[projectId].activeStep = "VIDEO";
+                // --- CAMBIO CLAVE ---
+                // Solo borramos el prompt temporal CUANDO el video ya está aceptado
+                cleanPromptFromDashboard(projectId);
+
+                updatedProjects[projectId].activeStep = "VIDEO_PROCESSING";
                 updatedProjects[projectId].currentJobId = videoRes.data.tavusVideoId;
                 updatedProjects[projectId].deliverableJobs = delivRes.map(r => r.data.jobId);
-              } else {
-                updatedProjects[projectId].error = "Failed to start video rendering";
               }
             } catch (e) { 
-                updatedProjects[projectId].error = "Network error while triggering assets"; 
+                updatedProjects[projectId].error = "Trigger error in deliverables"; 
             }
           } else {
-            // VIDEO IS READY: Move to deliverables phase and trigger success modal
+            // Pasamos a entregables y saltamos el modal de éxito (Video listo)
             updatedProjects[projectId].activeStep = "DELIVERABLES";
             updatedProjects[projectId].currentJobId = null;
-            
-            setLastCompletedProjectId(projectId); // Save ID for the Modal's link
+            setLastCompletedProjectId(projectId);
             setShowSuccessModal(true);
           }
         }
       }
 
-      // Deliverables Polling: Check status of pending HTML/SEO assets
+      // 2. MONITOREO SILENCIOSO DE ENTREGABLES
       const pending = deliverableJobs.filter(id => !completedDeliverables.includes(id));
       if (pending.length > 0) {
         const statuses = await Promise.all(pending.map(id => getHtmlDeliverableStatus({ token, jobId: id })));
@@ -183,25 +177,27 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         }
       }
 
-      // Mark project as COMPLETED if all deliverables are done
-      if (updatedProjects[projectId].activeStep === "DELIVERABLES" && 
-          updatedProjects[projectId].completedDeliverables.length >= updatedProjects[projectId].deliverableJobs.length) {
-        updatedProjects[projectId].activeStep = "COMPLETED";
+      // 3. FINALIZACIÓN Y LIMPIEZA DE METADATOS
+      const isFinished = updatedProjects[projectId].activeStep === "DELIVERABLES" && 
+                        updatedProjects[projectId].completedDeliverables.length >= updatedProjects[projectId].deliverableJobs.length &&
+                        updatedProjects[projectId].deliverableJobs.length > 0;
+
+      if (isFinished) {
         hasChanges = true;
+        delete updatedProjects[projectId];
+        localStorage.removeItem(`u_${projectId}`);
+        localStorage.removeItem(`r_${projectId}`);
       }
     }
 
     if (hasChanges) setProjects(updatedProjects);
   }, { refreshInterval: 5000 });
 
-  /**
-   * Initializes a new project in the tracking system
-   */
   const startNewProject = (
     jobId: string, 
     userId: string, 
     replicaId: string, 
-    options: { projectId: string; keywords?: string; targetAudience?: string }
+    options: { projectId: string; keywords?: string; targetAudience?: string; duration?: number }
   ) => {
     localStorage.setItem(`u_${options.projectId}`, userId);
     localStorage.setItem(`r_${options.projectId}`, replicaId);
@@ -216,49 +212,48 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         completedDeliverables: [],
         error: null,
         keywords: options.keywords,
-        targetAudience: options.targetAudience
+        targetAudience: options.targetAudience,
+        duration: options.duration || 0,
+        initialBalanceSnapshot: realBalance 
       }
     }));
   };
 
-  /**
-   * Manually removes a project from the state and local storage
-   */
-  const removeProject = (id: string) => {
+  const removeProject = useCallback((id: string) => {
     setProjects(prev => { const n = {...prev}; delete n[id]; return n; });
-    localStorage.removeItem(`u_${id}`); localStorage.removeItem(`r_${id}`);
-  };
+    localStorage.removeItem(`u_${id}`); 
+    localStorage.removeItem(`r_${id}`);
+    cleanPromptFromDashboard(id);
+  }, [cleanPromptFromDashboard]);
 
-  /**
-   * Resets the entire generation state
-   */
   const clearAllProjects = () => {
-    const keys = Object.keys(localStorage);
-    keys.forEach(k => (k.startsWith("u_") || k.startsWith("r_") || k === "active_generation_projects") && localStorage.removeItem(k));
     setProjects({});
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith("u_") || k.startsWith("r_") || k === "active_generation_projects" || k === "active_prompt_generations") {
+        localStorage.removeItem(k);
+      }
+    });
   };
 
   return (
     <GenerationContext.Provider value={{ projects, startNewProject, removeProject, clearAllProjects, showSuccessModal, setShowSuccessModal }}>
       {children}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="bg-white rounded-[24px] p-8 border-none shadow-2xl max-w-sm">
+        <DialogContent className="bg-white rounded-[24px] p-8 border-none shadow-2xl max-w-sm outline-none">
           <div className="flex flex-col items-center text-center">
             <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4">
               <CheckCircle2 className="w-10 h-10 text-green-500" />
             </div>
-            <DialogTitle className="text-2xl font-bold text-[#080936]">Video Ready!</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-[#080936]">Project Ready!</DialogTitle>
             <DialogDescription className="text-[#3E4462] mt-2 mb-6">
-              Your video and assets are being finalized. Check your project.
+              Your video is ready. Other assets are being finalized in the background.
             </DialogDescription>
-            
-            {/* LINK: Dynamically points to the project that just finished */}
-            <Link href={lastCompletedProjectId ? `/generation/${lastCompletedProjectId}` : "#"} className="w-full">
+            <Link href={lastCompletedProjectId ? `/generation/${lastCompletedProjectId}` : "/dashboard"} className="w-full">
               <Button
                 onClick={() => setShowSuccessModal(false)}
-                className="w-full bg-[#6D58BB] hover:bg-[#080936] text-white h-12 rounded-xl flex items-center gap-2 cursor-pointer"
+                className="w-full bg-[#6D58BB] hover:bg-[#080936] text-white h-12 rounded-xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-lg"
               >
-                Go to Project <ArrowRight className="w-4 h-4" />
+                View Project <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>

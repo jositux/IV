@@ -53,10 +53,10 @@ export function TrainingTypeCard({
   return (
     <Card className="bg-white rounded-[20px] gap-2 mb-16 border-1 border-[#DADADA] shadow-none px-4 py-4">
       <h2 className="text-2xl text-[#272830] font-normal mb-0 block">
-        Select Training Type
+      Select Additional Products to Maximize Your Content Creation
       </h2>
       <p className="text-sm text-gray-600">
-        {"Select a training focus to customize how the AI generates your content."}
+        {"Extend your video's reach with these complementary content packages. Each product uses your video content to create additional marketing assets—all generated from the same inputs you've already provided."}
       </p>
 
       <div className="flex flex-wrap gap-3 mb-4 mt-4">

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useGeneration } from "@/context/generation-context";
 import { getAuthToken } from "@/lib/get-auth-token";
@@ -17,33 +17,46 @@ export function useVideoCreator() {
   const router = useRouter();
   const { startNewProject } = useGeneration();
 
-  // --- ASSET & CONFIGURATION STATES ---
+  // --- VALORES INICIALES ---
+  const initialFormState = {
+    files: [],
+    urls: [],
+    newUrl: "",
+    videoLength: "30s",
+    language: "english",
+    videoPosition: "bottom-left",
+    videoSize: "standard",
+    primaryFocus: "files" as const,
+    targetAudience: "",
+    topic: "",
+    keywords: "",
+    projectName: "",
+    trainingType: "",
+    customTrainingType: "",
+    customTrainingOptions: []
+  };
+
+  // --- STATES (IGUALES AL ORIGINAL) ---
   const [replicas, setReplicas] = useState<Replica[]>([]);
   const [loadingReplicas, setLoadingReplicas] = useState(true);
-  const [files, setFiles] = useState<File[]>([]);
-  const [urls, setUrls] = useState<string[]>([]);
-  const [newUrl, setNewUrl] = useState("");
+  const [files, setFiles] = useState<File[]>(initialFormState.files);
+  const [urls, setUrls] = useState<string[]>(initialFormState.urls);
+  const [newUrl, setNewUrl] = useState(initialFormState.newUrl);
   const [selectedReplica, setSelectedReplica] = useState("");
-  const [videoLength, setVideoLength] = useState("30s");
-  const [language, setLanguage] = useState("english");
-  const [videoPosition, setVideoPosition] = useState("bottom-left");
-  const [videoSize, setVideoSize] = useState("standard");
-
-  // --- USER INPUT STATES ---
-  const [primaryFocus, setPrimaryFocus] = useState<"files" | "urls">("files");
-  const [targetAudience, setTargetAudience] = useState("");
-  const [topic, setTopic] = useState("");
-  const [keywords, setKeywords] = useState("");
-  const [projectName, setProjectName] = useState("");
-
-  // --- STRATEGY/TRAINING STATES ---
-  const [trainingType, setTrainingType] = useState<string>("");
-  const [customTrainingType, setCustomTrainingType] = useState("");
-  const [customTrainingOptions, setCustomTrainingOptions] = useState<string[]>([]);
-
-  // --- UI FEEDBACK & BILLING ---
+  const [videoLength, setVideoLength] = useState(initialFormState.videoLength);
+  const [language, setLanguage] = useState(initialFormState.language);
+  const [videoPosition, setVideoPosition] = useState(initialFormState.videoPosition);
+  const [videoSize, setVideoSize] = useState(initialFormState.videoSize);
+  const [primaryFocus, setPrimaryFocus] = useState<"files" | "urls">(initialFormState.primaryFocus);
+  const [targetAudience, setTargetAudience] = useState(initialFormState.targetAudience);
+  const [topic, setTopic] = useState(initialFormState.topic);
+  const [keywords, setKeywords] = useState(initialFormState.keywords);
+  const [projectName, setProjectName] = useState(initialFormState.projectName);
+  const [trainingType, setTrainingType] = useState<string>(initialFormState.trainingType);
+  const [customTrainingType, setCustomTrainingType] = useState(initialFormState.customTrainingType);
+  const [customTrainingOptions, setCustomTrainingOptions] = useState<string[]>(initialFormState.customTrainingOptions);
   const [isLocalGenerating, setIsLocalGenerating] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false); // NUEVO
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState("");
   const [projectError, setProjectError] = useState("");
   const [success, setSuccess] = useState("");
@@ -51,18 +64,39 @@ export function useVideoCreator() {
   const [previewReplicaName, setPreviewReplicaName] = useState("");
   const [availableCredits, setAvailableCredits] = useState<number | null>(null);
 
+  // --- HELPERS ---
   const calculateTotalCredits = () => {
     const value = parseInt(videoLength.match(/(\d+)/)?.[0] || "0");
     return videoLength.toLowerCase().includes("m") ? value * 60 : value;
   };
-
   const totalRequired = calculateTotalCredits();
+
+  const resetForm = () => {
+    setFiles(initialFormState.files);
+    setUrls(initialFormState.urls);
+    setNewUrl(initialFormState.newUrl);
+    setVideoLength(initialFormState.videoLength);
+    setLanguage(initialFormState.language);
+    setVideoPosition(initialFormState.videoPosition);
+    setVideoSize(initialFormState.videoSize);
+    setPrimaryFocus(initialFormState.primaryFocus);
+    setTargetAudience(initialFormState.targetAudience);
+    setTopic(initialFormState.topic);
+    setKeywords(initialFormState.keywords);
+    setProjectName(initialFormState.projectName);
+    setTrainingType(initialFormState.trainingType);
+    setCustomTrainingType(initialFormState.customTrainingType);
+    setCustomTrainingOptions(initialFormState.customTrainingOptions);
+    setProjectError("");
+    setError("");
+  };
 
   useEffect(() => {
     const initData = async () => {
       try {
         const token = await getAuthToken();
         const userId = localStorage.getItem("user") || "user_temp";
+        const savedReplica = localStorage.getItem("last_selected_replica");
         const [creditsRes, replicasRes] = await Promise.all([
           getCreditHistory(token, userId),
           getVideoReplicas(token),
@@ -71,7 +105,7 @@ export function useVideoCreator() {
         else setAvailableCredits(0);
         if (replicasRes.success && replicasRes.data.length > 0) {
           setReplicas(replicasRes.data);
-          setSelectedReplica(replicasRes.data[0].replica_id);
+          setSelectedReplica(savedReplica || replicasRes.data[0].replica_id);
         }
       } catch (e) {
         setAvailableCredits(0);
@@ -82,13 +116,24 @@ export function useVideoCreator() {
     initData();
   }, []);
 
-  const handleGenerate = async () => {
-    if (availableCredits !== null && availableCredits < totalRequired) {
+  const handleReplicaChange = (id: string) => {
+    setSelectedReplica(id);
+    localStorage.setItem("last_selected_replica", id);
+  };
+
+  // --- HANDLE GENERATE (BLOQUEADO Y CORREGIDO) ---
+  const handleGenerate = async (currentProjectedBalance?: number) => {
+    // Usamos el balance proyectado si viene de la página, si no, el local
+    const balanceToCheck = currentProjectedBalance !== undefined ? currentProjectedBalance : availableCredits;
+
+    if (balanceToCheck !== null && balanceToCheck < totalRequired) {
       setError("Insufficient credits for this duration");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
     if (projectName.trim().length < 4) {
       setProjectError("Project name is too short");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -99,13 +144,11 @@ export function useVideoCreator() {
       const token = await getAuthToken();
       const userId = localStorage.getItem("user") || "user_temp";
 
-      // 1. Folder & Project
       const folders = await getListFolders(token);
       let folderId = folders.data?.[0]?.folderId || (await createFolder(token, { folderName: "Main" })).data?.folderId;
       const proj = await createProject(token, { folderId, projectName: projectName.trim() });
       const currentProjectId = proj.data.projectId;
 
-      // 2. Documents
       let documentId: string | undefined = undefined;
       if (primaryFocus === "files" && files.length > 0) {
         const up = await uploadDocumentFile(token, files[0], userId, true);
@@ -121,7 +164,6 @@ export function useVideoCreator() {
         }
       }
 
-      // 3. Generation
       const response = await generatePrompt(token, {
         userInput: `Topic: ${topic}. Keywords: ${keywords}. Audience: ${targetAudience}`,
         userId, duration: totalRequired, style: "professional", language,
@@ -129,22 +171,38 @@ export function useVideoCreator() {
         documentId
       });
 
-      if (response.success) {
-        const newGen = { jobId: response.data.jobId, topic:topic ,projectId: currentProjectId, title: projectName.trim(), replicaId: selectedReplica , status: "active" };
-        const existing = JSON.parse(localStorage.getItem("active_prompt_generations") || "[]");
-        localStorage.setItem("active_prompt_generations", JSON.stringify([...existing, newGen]));
+     // ... (dentro de handleGenerate, después de response.success)
+if (response.success) {
+  const newGen = { 
+    jobId: response.data.jobId, 
+    topic: topic, 
+    projectId: currentProjectId, 
+    title: projectName.trim(), 
+    replicaId: selectedReplica,
+    duration: totalRequired, 
+    status: "active",
+    createdAt: Date.now() // <--- AÑADIMOS ESTO PARA EL ORDEN DEL DASHBOARD
+  };
+  
+  const existing = JSON.parse(localStorage.getItem("active_prompt_generations") || "[]");
+  localStorage.setItem("active_prompt_generations", JSON.stringify([...existing, newGen]));
 
-        startNewProject(response.data.jobId, userId, selectedReplica, {
-          projectId: currentProjectId,
-          keywords,
-          targetAudience,
-        });
+  // PASAMOS DURATION Y METADATOS AL PROVIDER
+  startNewProject(response.data.jobId, userId, selectedReplica, {
+    projectId: currentProjectId,
+    duration: totalRequired,
+    keywords,
+    targetAudience,
+  });
 
-        setShowSuccessModal(true); // Abrimos el modal al terminar
-        setIsLocalGenerating(false);
-      }
+  resetForm(); 
+  setShowSuccessModal(true);
+  window.dispatchEvent(new Event("storage"));
+}
     } catch (e: any) {
       setError(e.message || "An error occurred");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
       setIsLocalGenerating(false);
     }
   };
@@ -154,8 +212,13 @@ export function useVideoCreator() {
     router.push("/dashboard");
   };
 
+  const handleModalCancel = () => {
+    setShowSuccessModal(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return {
-    replicas, loadingReplicas, selectedReplica, setSelectedReplica,
+    replicas, loadingReplicas, selectedReplica, setSelectedReplica: handleReplicaChange,
     files, setFiles, urls, setUrls, newUrl, setNewUrl,
     primaryFocus, setPrimaryFocus, targetAudience, setTargetAudience,
     topic, setTopic, keywords, setKeywords, projectName, projectError,
@@ -167,7 +230,7 @@ export function useVideoCreator() {
     statusMessage: isLocalGenerating ? "Creating Project..." : null,
     error, success, previewVideo, setPreviewVideo, previewReplicaName,
     availableCredits, calculateTotalCredits, handleGenerate,
-    showSuccessModal, handleModalAccept, // Props para el modal
+    showSuccessModal, handleModalAccept, handleModalCancel,
     handleProjectNameChange: (v: string) => { setProjectName(v); setProjectError(""); },
     handlePlayVideo: (url: string, name: string) => {
       setPreviewVideo(url);
