@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef, memo } from "react";
+import { useState, useEffect, useCallback, useRef, memo, useMemo } from "react";
 import {
   Video, FileText, Monitor, Search, ArrowRight, Play, Clock, CreditCard, RefreshCw, Plus, Sparkles, X
 } from "lucide-react";
@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { VideoPreviewModal } from "./components/video-preview-modal";
 import Link from "next/link";
+import Image from "next/image"; 
 import useSWR from "swr"; 
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -20,6 +21,14 @@ import { getVideosByUser, type UserVideo } from "@/services/video/video-by-user"
 import { getAuthToken } from "@/lib/get-auth-token";
 import { getListProjects, type Project } from "@/services/get-list-projects";
 import { getProjectById } from "@/services/get-project-by-id";
+
+// --- INTERFACES ---
+interface ActivePrompt {
+  projectId: string;
+  title?: string;
+  topic?: string;
+  replicaId?: string;
+}
 
 // --- HELPERS ---
 const formatVideoDate = (dateString?: string) => {
@@ -33,6 +42,17 @@ const formatVideoDate = (dateString?: string) => {
 const projectFetcher = async ([_, token, projectId]: [string, string, string]) => {
   const res = await getProjectById(token, projectId);
   return res.data;
+};
+
+const dashboardFetcher = async ([_, token, userId]: [string, string, string]) => {
+  const [vRes, pRes] = await Promise.all([
+    getVideosByUser(token, userId),
+    getListProjects(token)
+  ]);
+  return {
+    videos: vRes.data || [],
+    projects: pRes.success ? pRes.data : []
+  };
 };
 
 // --- SKELETON COMPONENT ---
@@ -58,13 +78,14 @@ const VideoCard = memo(function VideoCard({
   projectName, 
   onOpenVideo, 
   getStatusBadge,
-  onFinalized 
+  onFinalized,
+  priority = false // Prop para prioridad de carga
 }: any) {
   const isTransient = ["processing", "queued", "pending"].includes(initialVideo.status?.toLowerCase());
   
   const { data: updatedData } = useSWR(
     isTransient && token && initialVideo.projectId ? ["project-status", token, initialVideo.projectId] : null,
-    projectFetcher, { refreshInterval: 8000, revalidateOnFocus: false }
+    projectFetcher, { refreshInterval: 8000, revalidateOnFocus: false, dedupingInterval: 2000 }
   );
   
   const video = updatedData?.videos?.[0] || initialVideo;
@@ -82,16 +103,23 @@ const VideoCard = memo(function VideoCard({
     <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}>
       <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full transition-shadow hover:shadow-md rounded-[24px] overflow-hidden">
         <CardContent className="p-0">
-          <div className="relative aspect-[4/3]">
-            <img src={`/assets/avatars/${video.replicaId || "default"}.jpg`} className="w-full h-full object-cover object-top" alt="" />
+          <div className="relative aspect-[4/3] w-full overflow-hidden">
+            <Image 
+              src={`/assets/avatars/${video.replicaId || "default"}.jpg`} 
+              alt={projectName || "Video thumbnail"}
+              fill
+              priority={priority}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+              className="object-cover object-top transition-transform group-hover:scale-105"
+            />
             {status === "completed" && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button className="rounded-full bg-white text-gray-900 w-16 h-16 shadow-lg cursor-pointer" onClick={() => onOpenVideo(video)}>
                   <Play className="w-8 h-8 ml-1" fill="#6D58BB" color="#6D58BB" />
                 </Button>
               </div>
             )}
-            <Badge className={`rounded-[20px] font-normal absolute top-2 right-2 ${getStatusBadge(status).color}`}>
+            <Badge className={`rounded-[20px] font-normal absolute top-2 right-2 z-20 ${getStatusBadge(status).color}`}>
               {status}
             </Badge>
           </div>
@@ -126,10 +154,6 @@ const VideoCard = memo(function VideoCard({
 // --- DASHBOARD PAGE ---
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [videos, setVideos] = useState<UserVideo[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [activePrompts, setActivePrompts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   
@@ -137,9 +161,19 @@ export default function Dashboard() {
   const { projectedBalance, mutate: mutateUserProfile } = useUserProfile();
   
   const frozenVideoRef = useRef<UserVideo | null>(null);
-  const hasLoadedInitialData = useRef(false);
 
-  const totalCompletedCount = videos.filter(v => v.status?.toLowerCase() === "completed").length;
+  useEffect(() => {
+    getAuthToken().then(setToken);
+  }, []);
+
+  const { data, isLoading: dataLoading, mutate: mutateDashboard } = useSWR(
+    token && backendUser?.id ? ["dashboard-data", token, backendUser.id] : null,
+    dashboardFetcher,
+    { refreshInterval: 25000, revalidateOnFocus: true }
+  );
+
+  const videos = data?.videos || [];
+  const projects = data?.projects || [];
 
   const handleOpenVideo = useCallback((v: UserVideo) => { 
     frozenVideoRef.current = JSON.parse(JSON.stringify(v)); 
@@ -148,23 +182,16 @@ export default function Dashboard() {
   
   const handleCloseVideo = useCallback(() => setIsVideoModalOpen(false), []);
 
-  // --- HACK: GARBAGE COLLECTOR SELECTIVO (SOLO SI NO ES DELIVERABLES) ---
   const cleanupStaleStates = useCallback((projectId: string) => {
     if (typeof window === 'undefined' || !projectId) return;
-    
-    // 1. Limpieza de proyectos activos basándose en activeStep
     const genProjectsStr = localStorage.getItem("active_generation_projects");
     if (genProjectsStr) {
       try {
         const genProjects = JSON.parse(genProjectsStr);
         const projectData = genProjects[projectId];
-        
-        // REGLA: Si existe y su estado NO ES deliverables, lo borramos (es basura)
         if (projectData && projectData.activeStep !== "DELIVERABLES") {
           delete genProjects[projectId];
           localStorage.setItem("active_generation_projects", JSON.stringify(genProjects));
-          
-          // También limpiamos el rastro en active_prompt_generations ya que no debería estar ahí
           const promptsStr = localStorage.getItem("active_prompt_generations");
           if (promptsStr) {
             const prompts = JSON.parse(promptsStr);
@@ -172,80 +199,65 @@ export default function Dashboard() {
             localStorage.setItem("active_prompt_generations", JSON.stringify(filteredPrompts));
           }
         }
-      } catch (e) { console.error("Error en cleanup selectivo", e); }
+      } catch (e) { console.error("Cleanup error", e); }
     }
   }, []);
 
-  const loadDashboardData = useCallback(async (authToken: string, userId: string) => {
-    try {
-      const [vRes, pRes] = await Promise.all([getVideosByUser(authToken, userId), getListProjects(authToken)]);
-      const fetchedVideos = vRes.data || [];
-      setVideos(fetchedVideos);
-      if (pRes.success) setProjects(pRes.data);
-      
-      // Ejecutar el hack de limpieza solo para videos completados en backend
-      fetchedVideos.forEach(v => {
-        if (v.status?.toLowerCase() === "completed" && v.projectId) {
-          cleanupStaleStates(v.projectId);
-        }
-      });
-
-      const promptsStr = typeof window !== 'undefined' ? localStorage.getItem("active_prompt_generations") || "[]" : "[]";
-      const genProjectsStr = typeof window !== 'undefined' ? localStorage.getItem("active_generation_projects") || "{}" : "{}";
-      const prompts = JSON.parse(promptsStr);
-      const genProjects = JSON.parse(genProjectsStr);
-      
-      setActivePrompts(prompts.filter((p: any) => genProjects[p.projectId]?.activeStep === "PROMPT"));
-    } catch (err) { console.error(err); } finally { setIsLoading(false); }
-  }, [cleanupStaleStates]);
+  useEffect(() => {
+    videos.forEach(v => {
+      if (v.status?.toLowerCase() === "completed" && v.projectId) {
+        cleanupStaleStates(v.projectId);
+      }
+    });
+  }, [videos, cleanupStaleStates]);
 
   const handleFinalizedSinc = useCallback(async (projectId?: string) => {
-    if (token && backendUser?.id) {
-      if (projectId) cleanupStaleStates(projectId);
-      await loadDashboardData(token, backendUser.id);
-      mutateUserProfile();
-    }
-  }, [token, backendUser?.id, loadDashboardData, mutateUserProfile, cleanupStaleStates]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    async function init() {
-      if (!backendUser?.id) return;
-      const authToken = await getAuthToken();
-      setToken(authToken);
-      if (!hasLoadedInitialData.current) { 
-        await loadDashboardData(authToken, backendUser.id); 
-        hasLoadedInitialData.current = true; 
-      }
-      interval = setInterval(() => {
-        const hasActiveTasks = typeof window !== 'undefined' && localStorage.getItem("active_generation_projects") !== "{}";
-        const hasProcessing = videos.some(v => ["processing", "queued", "pending"].includes(v.status?.toLowerCase()));
-        if (hasActiveTasks || hasProcessing) loadDashboardData(authToken, backendUser.id);
-      }, 15000);
-    }
-    init();
-    return () => clearInterval(interval);
-  }, [backendUser?.id, loadDashboardData, videos]);
+    if (projectId) cleanupStaleStates(projectId);
+    mutateDashboard();
+    mutateUserProfile();
+  }, [cleanupStaleStates, mutateDashboard, mutateUserProfile]);
 
   const getStatusBadge = (s: string) => {
     const v: any = { completed: "bg-[#6D58BB] text-white", processing: "bg-[#E2F2FE] text-[#2056E0]", failed: "bg-red-100 text-red-800" };
     return { color: v[s.toLowerCase()] || "bg-[#FFF4CA] text-[#8F3F01]" };
   };
 
-  const getProjectName = (id: string | null) => projects.find(p => p.projectId === id)?.projectName || "";
+  const activePrompts = useMemo(() => {
+    if (typeof window === 'undefined') return [];
+    const prompts: ActivePrompt[] = JSON.parse(localStorage.getItem("active_prompt_generations") || "[]");
+    const genProjects = JSON.parse(localStorage.getItem("active_generation_projects") || "{}");
+    return prompts.filter((p: ActivePrompt) => {
+      const isStillInPromptStep = genProjects[p.projectId]?.activeStep === "PROMPT";
+      const isNotYetInBackend = !videos.some(v => v.projectId === p.projectId);
+      return isStillInPromptStep && isNotYetInBackend;
+    });
+  }, [videos, dataLoading]);
+
+  const getProjectName = useCallback((id: string | null) => 
+    projects.find(p => p.projectId === id)?.projectName || "", [projects]
+  );
   
-  const filteredVideos = videos.filter(v => 
-    getProjectName(v.projectId).toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (v.prompt || "").toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredVideos = useMemo(() => 
+    videos.filter(v => 
+      getProjectName(v.projectId).toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (v.prompt || "").toLowerCase().includes(searchQuery.toLowerCase())
+    ), [videos, searchQuery, getProjectName]
   );
-  const filteredPrompts = activePrompts.filter(p => 
-    (p.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (p.topic || "").toLowerCase().includes(searchQuery.toLowerCase())
+
+  const filteredPrompts = useMemo(() => 
+    activePrompts.filter((p: ActivePrompt) => 
+      (p.title || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (p.topic || "").toLowerCase().includes(searchQuery.toLowerCase())
+    ), [activePrompts, searchQuery]
   );
+
+  const totalCompletedCount = useMemo(() => 
+    videos.filter(v => v.status?.toLowerCase() === "completed").length, 
+  [videos]);
 
   const hasContent = videos.length > 0 || activePrompts.length > 0;
   const hasNoResults = searchQuery && filteredVideos.length === 0 && filteredPrompts.length === 0;
-  const showSkeleton = (isLoading || authLoading) && !hasLoadedInitialData.current;
+  const showSkeleton = (dataLoading || authLoading) && !data;
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] p-4">
@@ -254,7 +266,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-5xl font-medium text-[#080936]">Dashboard</h1>
           {hasContent && !showSkeleton && (
-            <Link href="/inputs" className="cursor-pointer">
+            <Link href="/inputs">
               <Button size="lg" className="rounded-xl bg-[#6D58BB] px-6 py-6 text-xl font-normal text-white hover:bg-[#080936] cursor-pointer">
                 <Plus className="mr-2 h-5 w-5" /> Create new project
               </Button>
@@ -308,7 +320,7 @@ export default function Dashboard() {
                   <CardContent className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-[24px] border border-gray-200 py-24">
                     <h2 className="mb-2 text-5xl font-medium text-[#080936]">Create My First Video</h2>
                     <p className="mb-8 text-gray-500">Scale your reach with high-converting AI videos</p>
-                    <Link href="/inputs" className="cursor-pointer">
+                    <Link href="/inputs">
                       <Button size="lg" className="rounded-xl bg-[#6D58BB] px-8 py-7 text-xl font-normal text-white hover:bg-[#080936] cursor-pointer">
                         Start Creating Now <ArrowRight className="ml-2 h-6 w-6" />
                       </Button>
@@ -324,13 +336,19 @@ export default function Dashboard() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <AnimatePresence mode="popLayout">
-                    {filteredPrompts.map((p) => (
+                    {filteredPrompts.map((p: ActivePrompt, idx: number) => (
                       <motion.div key={p.projectId} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                         <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full transition-shadow hover:shadow-md rounded-[24px] overflow-hidden">
                           <CardContent className="p-0">   
-                            <div className="relative aspect-[4/3]">
-                              <img src={`/assets/avatars/${p.replicaId || "default"}.jpg`} className="w-full h-full object-cover object-top grayscale-[0.2]" alt="" />
-                              <Badge className="rounded-[20px] font-normal absolute top-2 right-2 bg-[#FFF4CA] text-[#8F3F01]">queued</Badge>
+                            <div className="relative aspect-[4/3] w-full overflow-hidden">
+                              <Image 
+                                src={`/assets/avatars/${p.replicaId || "default"}.jpg`} 
+                                alt={p.title || "Project preview"}
+                                fill
+                                priority={idx < 2} // Prioridad a los primeros prompts ficticios
+                                className="object-cover object-top grayscale-[0.2]"
+                              />
+                              <Badge className="rounded-[20px] font-normal absolute top-2 right-2 z-10 bg-[#FFF4CA] text-[#8F3F01]">queued</Badge>
                             </div>
                             <div className="p-5 space-y-2">
                               <h2 className="text-2xl text-[#272830] font-medium truncate">{p.title || "New Project"}</h2>
@@ -347,7 +365,7 @@ export default function Dashboard() {
                       </motion.div>
                     ))}
 
-                    {filteredVideos.map((v) => (
+                    {filteredVideos.map((v, idx) => (
                       <VideoCard 
                         key={v.videoId} 
                         video={v} 
@@ -356,12 +374,13 @@ export default function Dashboard() {
                         onOpenVideo={handleOpenVideo} 
                         getStatusBadge={getStatusBadge}
                         onFinalized={handleFinalizedSinc}
+                        priority={idx < 4} // Carga prioritaria para los primeros 4 videos reales
                       />
                     ))}
 
                     {!searchQuery && (
                       <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                        <Link href="/inputs" className="h-full block group cursor-pointer">
+                        <Link href="/inputs" className="h-full block group">
                           <Card className="border-2 border-dashed border-gray-200 bg-transparent h-full min-h-[380px] flex flex-col items-center justify-center p-8 transition-all hover:border-[#6D58BB] hover:bg-white rounded-[24px]">
                             <div className="rounded-full bg-gray-100 p-4 mb-4 group-hover:bg-[#E2F2FE]">
                               <Plus className="h-8 w-8 text-gray-400 group-hover:text-[#6D58BB]" />
