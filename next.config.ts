@@ -1,4 +1,7 @@
 const nextConfig = {
+  //images: {
+    //unoptimized: true, // Esto evita que Next use librerías de C como sharp
+  //},
   async rewrites() {
     return [
       {
