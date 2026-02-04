@@ -15,15 +15,14 @@ import { generateSeoGeoPackage } from "@/services/deliverables/generate-seo-gio-
 import { generateCustomerInstructions } from "@/services/deliverables/generate-customer-instructions";
 import { getHtmlDeliverableStatus } from "@/services/deliverables/get-html-deliverable-status";
 
-// Hooks
+// Hooks y UI
 import { useUserProfile } from "@/hooks/use-user-profile";
-
-// UI Components
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+// --- TYPES ---
 type Step = "PROMPT" | "VIDEO" | "VIDEO_PROCESSING" | "DELIVERABLES" | "COMPLETED";
 
 interface ProjectState {
@@ -37,11 +36,6 @@ interface ProjectState {
   targetAudience?: string;
   duration: number;
   initialBalanceSnapshot: number; 
-}
-
-interface PromptStatusData {
-  status: "queued" | "processing" | "completed" | "failed";
-  scriptId: string;
 }
 
 interface GenerationContextType {
@@ -58,11 +52,22 @@ interface GenerationContextType {
   setShowSuccessModal: (show: boolean) => void;
 }
 
+// --- HELPERS ---
+const getCookie = (name: string) => {
+  if (typeof window === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return null;
+};
+
 const GenerationContext = createContext<GenerationContextType | undefined>(undefined);
 
 export function GenerationProvider({ children }: { children: React.ReactNode }) {
   const { realBalance } = useUserProfile();
+  const userIdFromCookie = getCookie("user_id");
 
+  // 1. Cargar estado de la cola desde localStorage (Persistencia de proceso)
   const [projects, setProjects] = useState<Record<string, ProjectState>>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("active_generation_projects");
@@ -76,28 +81,28 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [lastCompletedProjectId, setLastCompletedProjectId] = useState<string | null>(null);
 
+  // Guardar cambios en la cola localmente
   useEffect(() => {
     localStorage.setItem("active_generation_projects", JSON.stringify(projects));
   }, [projects]);
 
   const allProjects = useMemo(() => Object.values(projects), [projects]);
 
-  // Helper para limpiar el prompt temporal del Dashboard
+  // Limpia los "esqueletos" temporales del Dashboard
   const cleanPromptFromDashboard = useCallback((projectId: string) => {
     const stored = localStorage.getItem("active_prompt_generations");
     if (stored) {
       const prompts = JSON.parse(stored);
       const filtered = prompts.filter((p: any) => p.projectId !== projectId);
       localStorage.setItem("active_prompt_generations", JSON.stringify(filtered));
-      // Disparar evento para que el Dashboard reaccione instantáneamente
       window.dispatchEvent(new Event("storage"));
     }
   }, []);
 
-  // Polling Engine
-  useSWR(allProjects.length > 0 ? "global-polling" : null, async () => {
+  // --- MOTOR DE POLLING (SWR) ---
+  useSWR(allProjects.length > 0 ? "global-generation-polling" : null, async () => {
     const token = await getAuthToken();
-    if (!token) return;
+    if (!token || !userIdFromCookie) return;
 
     const updatedProjects = { ...projects };
     let hasChanges = false;
@@ -105,17 +110,15 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     for (const project of allProjects) {
       const { projectId, activeStep, currentJobId, deliverableJobs, completedDeliverables, keywords, targetAudience } = project;
 
-      // Limpieza en caso de error
       if (project.error) {
         delete updatedProjects[projectId];
-        localStorage.removeItem(`u_${projectId}`);
         localStorage.removeItem(`r_${projectId}`);
         cleanPromptFromDashboard(projectId);
         hasChanges = true;
         continue;
       }
 
-      // 1. PROMPT -> VIDEO -> DELIVERABLES
+      // FLUJO: PROMPT -> VIDEO
       if ((activeStep === "PROMPT" || activeStep === "VIDEO_PROCESSING") && currentJobId) {
         const res = activeStep === "PROMPT" 
           ? await getPromptStatus(token, currentJobId) 
@@ -125,15 +128,14 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
           hasChanges = true;
 
           if (activeStep === "PROMPT") {
-            const scriptId = (res.data as PromptStatusData).scriptId;
-            const userId = localStorage.getItem(`u_${projectId}`) || "";
+            const scriptId = (res.data as any).scriptId;
             const replicaId = localStorage.getItem(`r_${projectId}`) || "";
             
             try {
-              // Disparamos todo el paquete de generación
+              // Lanzamos video y todos los entregables en paralelo
               const [videoRes, ...delivRes] = await Promise.all([
                 generateVideoFromScript(token, { 
-                    scriptId, userId, replicaId, projectId, keywords, targetAudience, 
+                    scriptId, userId: userIdFromCookie, replicaId, projectId, keywords, targetAudience, 
                     options: { waitForCompletion: false } 
                 }),
                 generateCompleteHtmlCode(token, { scriptId, projectId }),
@@ -144,19 +146,16 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
               ]);
 
               if (videoRes.success) {
-                // --- CAMBIO CLAVE ---
-                // Solo borramos el prompt temporal CUANDO el video ya está aceptado
                 cleanPromptFromDashboard(projectId);
-
                 updatedProjects[projectId].activeStep = "VIDEO_PROCESSING";
                 updatedProjects[projectId].currentJobId = videoRes.data.tavusVideoId;
                 updatedProjects[projectId].deliverableJobs = delivRes.map(r => r.data.jobId);
               }
             } catch (e) { 
-                updatedProjects[projectId].error = "Trigger error in deliverables"; 
+                updatedProjects[projectId].error = "Error triggering deliverables"; 
             }
           } else {
-            // Pasamos a entregables y saltamos el modal de éxito (Video listo)
+            // Video terminado
             updatedProjects[projectId].activeStep = "DELIVERABLES";
             updatedProjects[projectId].currentJobId = null;
             setLastCompletedProjectId(projectId);
@@ -165,7 +164,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         }
       }
 
-      // 2. MONITOREO SILENCIOSO DE ENTREGABLES
+      // MONITOREO DE ENTREGABLES
       const pending = deliverableJobs.filter(id => !completedDeliverables.includes(id));
       if (pending.length > 0) {
         const statuses = await Promise.all(pending.map(id => getHtmlDeliverableStatus({ token, jobId: id })));
@@ -177,7 +176,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         }
       }
 
-      // 3. FINALIZACIÓN Y LIMPIEZA DE METADATOS
+      // LIMPIEZA FINAL
       const isFinished = updatedProjects[projectId].activeStep === "DELIVERABLES" && 
                         updatedProjects[projectId].completedDeliverables.length >= updatedProjects[projectId].deliverableJobs.length &&
                         updatedProjects[projectId].deliverableJobs.length > 0;
@@ -185,7 +184,6 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
       if (isFinished) {
         hasChanges = true;
         delete updatedProjects[projectId];
-        localStorage.removeItem(`u_${projectId}`);
         localStorage.removeItem(`r_${projectId}`);
       }
     }
@@ -195,11 +193,10 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
 
   const startNewProject = (
     jobId: string, 
-    userId: string, 
+    _userId: string, // El userId se ignora, usamos la Cookie del sistema
     replicaId: string, 
     options: { projectId: string; keywords?: string; targetAudience?: string; duration?: number }
   ) => {
-    localStorage.setItem(`u_${options.projectId}`, userId);
     localStorage.setItem(`r_${options.projectId}`, replicaId);
     
     setProjects(prev => ({
@@ -221,7 +218,6 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
 
   const removeProject = useCallback((id: string) => {
     setProjects(prev => { const n = {...prev}; delete n[id]; return n; });
-    localStorage.removeItem(`u_${id}`); 
     localStorage.removeItem(`r_${id}`);
     cleanPromptFromDashboard(id);
   }, [cleanPromptFromDashboard]);
@@ -229,7 +225,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
   const clearAllProjects = () => {
     setProjects({});
     Object.keys(localStorage).forEach(k => {
-      if (k.startsWith("u_") || k.startsWith("r_") || k === "active_generation_projects" || k === "active_prompt_generations") {
+      if (k.startsWith("r_") || k === "active_generation_projects" || k === "active_prompt_generations") {
         localStorage.removeItem(k);
       }
     });
@@ -238,6 +234,8 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
   return (
     <GenerationContext.Provider value={{ projects, startNewProject, removeProject, clearAllProjects, showSuccessModal, setShowSuccessModal }}>
       {children}
+      
+      {/* Modal de éxito al terminar Video */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
         <DialogContent className="bg-white rounded-[24px] p-8 border-none shadow-2xl max-w-sm outline-none">
           <div className="flex flex-col items-center text-center">
@@ -251,7 +249,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
             <Link href={lastCompletedProjectId ? `/generation/${lastCompletedProjectId}` : "/dashboard"} className="w-full">
               <Button
                 onClick={() => setShowSuccessModal(false)}
-                className="w-full bg-[#6D58BB] hover:bg-[#080936] text-white h-12 rounded-xl flex items-center justify-center gap-2 cursor-pointer border-none shadow-lg"
+                className="w-full bg-[#6D58BB] hover:bg-[#080936] text-white h-12 rounded-xl flex items-center justify-center gap-2 border-none shadow-lg cursor-pointer"
               >
                 View Project <ArrowRight className="w-4 h-4" />
               </Button>
