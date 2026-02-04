@@ -15,46 +15,37 @@ interface BackendUser {
   created_at?: string;
 }
 
-interface UseBackendAuthReturn {
-  backendUser: BackendUser | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
-export function useBackendAuth(): UseBackendAuthReturn {
-  const {
-    getAccessTokenSilently,
-    isAuthenticated,
-    isLoading: auth0Loading,
-  } = useAuth0();
+export function useBackendAuth() {
+  const { getAccessTokenSilently, isAuthenticated, isLoading: auth0Loading } = useAuth0();
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper: Guarda la cookie. SameSite=Lax es estándar de seguridad moderno.
+  const setCookie = (name: string, value: string) => {
+    const expires = new Date(Date.now() + 7 * 864e5).toUTCString(); // 7 días
+    document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
+  };
+
+  // Helper: Elimina la cookie al expirar la sesión o dar error.
+  const deleteCookie = (name: string) => {
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+  };
+
   const fetchUser = useCallback(async () => {
-    // Si Auth0 está cargando, esperamos.
     if (auth0Loading) return;
 
     try {
       setLoading(true);
-      setError(null);
-
       let accessToken = null;
 
-      // 1. Priorizamos obtener el token fresco del SDK si estamos autenticados
       if (isAuthenticated) {
         try {
           accessToken = await getAccessTokenSilently();
-          console.log("Que onda");
-          // localStorage.setItem('access_token', accessToken);
         } catch (tokenErr) {
-          console.error("Error obteniendo token fresco:", tokenErr);
-          // Fallback al localStorage si el SDK falla
-          accessToken = await getAuthToken();
+          accessToken = await getAuthToken(); // Fallback
         }
       } else {
-        // Si no está autenticado en Auth0, vemos si hay un token viejo
         accessToken = await getAuthToken();
       }
 
@@ -66,43 +57,31 @@ export function useBackendAuth(): UseBackendAuthReturn {
 
       const response = await fetch("/gateway/auth/callback", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({ accessToken }),
       });
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem("access_token");
-        }
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error ${response.status}`);
+        if (response.status === 401 || response.status === 403) deleteCookie("user_id");
+        throw new Error(`Error ${response.status}`);
       }
 
-      const userData = await response.json();
+      const userData: BackendUser = await response.json();
+      
+      // Sincronización: Guardamos en estado y en Cookie inmediatamente
       setBackendUser(userData);
+      setCookie("user_id", userData.id);
 
-      //console.log("user real data", userData)
-      localStorage.setItem("user", userData.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
-      console.error("Error fetching backend user:", err);
       setBackendUser(null);
+      deleteCookie("user_id");
     } finally {
       setLoading(false);
     }
   }, [isAuthenticated, auth0Loading, getAccessTokenSilently]);
 
-  useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+  useEffect(() => { fetchUser(); }, [fetchUser]);
 
-  return {
-    backendUser,
-    loading,
-    error,
-    refetch: fetchUser,
-  };
+  return { backendUser, loading, error, refetch: fetchUser };
 }

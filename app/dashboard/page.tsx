@@ -38,7 +38,7 @@ const projectFetcher = async ([_, token, projectId]: [string, string, string]) =
 // --- SKELETON COMPONENT ---
 const VideoCardSkeleton = () => (
   <div className="bg-white rounded-[24px] border border-gray-100 overflow-hidden shadow-none h-full">
-    <div className="aspect-video bg-gray-100 animate-pulse" />
+    <div className="aspect-[4/3] bg-gray-100 animate-pulse" />
     <div className="p-5 space-y-4">
       <div className="h-7 bg-gray-100 animate-pulse rounded-md w-3/4" />
       <div className="h-4 bg-gray-50 animate-pulse rounded-md w-full" />
@@ -74,15 +74,15 @@ const VideoCard = memo(function VideoCard({
 
   useEffect(() => {
     if (initialVideo.status.toLowerCase() !== "completed" && status === "completed") {
-      onFinalized();
+      if (video.projectId) onFinalized(video.projectId);
     }
-  }, [status, initialVideo.status, onFinalized]);
+  }, [status, initialVideo.status, onFinalized, video.projectId]);
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}>
       <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full transition-shadow hover:shadow-md rounded-[24px] overflow-hidden">
         <CardContent className="p-0">
-          <div className="relative aspect-video">
+          <div className="relative aspect-[4/3]">
             <img src={`/assets/avatars/${video.replicaId || "default"}.jpg`} className="w-full h-full object-cover object-top" alt="" />
             {status === "completed" && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -133,10 +133,8 @@ export default function Dashboard() {
   const [token, setToken] = useState<string | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   
-  const { backendUser } = useBackendAuth();
-  const { user: profile, mutate: mutateUserProfile } = useUserProfile();
-
-  const { realBalance, projectedBalance } = useUserProfile();
+  const { backendUser, loading: authLoading } = useBackendAuth();
+  const { projectedBalance, mutate: mutateUserProfile } = useUserProfile();
   
   const frozenVideoRef = useRef<UserVideo | null>(null);
   const hasLoadedInitialData = useRef(false);
@@ -150,26 +148,64 @@ export default function Dashboard() {
   
   const handleCloseVideo = useCallback(() => setIsVideoModalOpen(false), []);
 
+  // --- HACK: GARBAGE COLLECTOR SELECTIVO (SOLO SI NO ES DELIVERABLES) ---
+  const cleanupStaleStates = useCallback((projectId: string) => {
+    if (typeof window === 'undefined' || !projectId) return;
+    
+    // 1. Limpieza de proyectos activos basándose en activeStep
+    const genProjectsStr = localStorage.getItem("active_generation_projects");
+    if (genProjectsStr) {
+      try {
+        const genProjects = JSON.parse(genProjectsStr);
+        const projectData = genProjects[projectId];
+        
+        // REGLA: Si existe y su estado NO ES deliverables, lo borramos (es basura)
+        if (projectData && projectData.activeStep !== "DELIVERABLES") {
+          delete genProjects[projectId];
+          localStorage.setItem("active_generation_projects", JSON.stringify(genProjects));
+          
+          // También limpiamos el rastro en active_prompt_generations ya que no debería estar ahí
+          const promptsStr = localStorage.getItem("active_prompt_generations");
+          if (promptsStr) {
+            const prompts = JSON.parse(promptsStr);
+            const filteredPrompts = prompts.filter((p: any) => p.projectId !== projectId);
+            localStorage.setItem("active_prompt_generations", JSON.stringify(filteredPrompts));
+          }
+        }
+      } catch (e) { console.error("Error en cleanup selectivo", e); }
+    }
+  }, []);
+
   const loadDashboardData = useCallback(async (authToken: string, userId: string) => {
     try {
       const [vRes, pRes] = await Promise.all([getVideosByUser(authToken, userId), getListProjects(authToken)]);
-      setVideos(vRes.data || []);
+      const fetchedVideos = vRes.data || [];
+      setVideos(fetchedVideos);
       if (pRes.success) setProjects(pRes.data);
       
+      // Ejecutar el hack de limpieza solo para videos completados en backend
+      fetchedVideos.forEach(v => {
+        if (v.status?.toLowerCase() === "completed" && v.projectId) {
+          cleanupStaleStates(v.projectId);
+        }
+      });
+
       const promptsStr = typeof window !== 'undefined' ? localStorage.getItem("active_prompt_generations") || "[]" : "[]";
       const genProjectsStr = typeof window !== 'undefined' ? localStorage.getItem("active_generation_projects") || "{}" : "{}";
       const prompts = JSON.parse(promptsStr);
       const genProjects = JSON.parse(genProjectsStr);
+      
       setActivePrompts(prompts.filter((p: any) => genProjects[p.projectId]?.activeStep === "PROMPT"));
     } catch (err) { console.error(err); } finally { setIsLoading(false); }
-  }, []);
+  }, [cleanupStaleStates]);
 
-  const handleFinalizedSinc = useCallback(async () => {
+  const handleFinalizedSinc = useCallback(async (projectId?: string) => {
     if (token && backendUser?.id) {
+      if (projectId) cleanupStaleStates(projectId);
       await loadDashboardData(token, backendUser.id);
       mutateUserProfile();
     }
-  }, [token, backendUser?.id, loadDashboardData, mutateUserProfile]);
+  }, [token, backendUser?.id, loadDashboardData, mutateUserProfile, cleanupStaleStates]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -177,7 +213,10 @@ export default function Dashboard() {
       if (!backendUser?.id) return;
       const authToken = await getAuthToken();
       setToken(authToken);
-      if (!hasLoadedInitialData.current) { await loadDashboardData(authToken, backendUser.id); hasLoadedInitialData.current = true; }
+      if (!hasLoadedInitialData.current) { 
+        await loadDashboardData(authToken, backendUser.id); 
+        hasLoadedInitialData.current = true; 
+      }
       interval = setInterval(() => {
         const hasActiveTasks = typeof window !== 'undefined' && localStorage.getItem("active_generation_projects") !== "{}";
         const hasProcessing = videos.some(v => ["processing", "queued", "pending"].includes(v.status?.toLowerCase()));
@@ -195,7 +234,6 @@ export default function Dashboard() {
 
   const getProjectName = (id: string | null) => projects.find(p => p.projectId === id)?.projectName || "";
   
-  // Filtrado de videos y prompts
   const filteredVideos = videos.filter(v => 
     getProjectName(v.projectId).toLowerCase().includes(searchQuery.toLowerCase()) || 
     (v.prompt || "").toLowerCase().includes(searchQuery.toLowerCase())
@@ -207,6 +245,7 @@ export default function Dashboard() {
 
   const hasContent = videos.length > 0 || activePrompts.length > 0;
   const hasNoResults = searchQuery && filteredVideos.length === 0 && filteredPrompts.length === 0;
+  const showSkeleton = (isLoading || authLoading) && !hasLoadedInitialData.current;
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] p-4">
@@ -214,7 +253,7 @@ export default function Dashboard() {
       <main className="mx-auto py-16 px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-5xl font-medium text-[#080936]">Dashboard</h1>
-          {hasContent && !isLoading && (
+          {hasContent && !showSkeleton && (
             <Link href="/inputs" className="cursor-pointer">
               <Button size="lg" className="rounded-xl bg-[#6D58BB] px-6 py-6 text-xl font-normal text-white hover:bg-[#080936] cursor-pointer">
                 <Plus className="mr-2 h-5 w-5" /> Create new project
@@ -242,22 +281,14 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {hasContent && !isLoading && (
+        {hasContent && !showSkeleton && (
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-2xl font-semibold text-[#080936]">View projects</h2>
             <div className="relative w-80">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input 
-                placeholder="Search projects..." 
-                value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)} 
-                className="rounded-[14px] border-gray-300 bg-white pl-10 h-11 shadow-none focus-visible:ring-1 focus-visible:ring-[#6D58BB]" 
-              />
+              <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="rounded-[14px] border-gray-300 bg-white pl-10 h-11 shadow-none focus-visible:ring-1 focus-visible:ring-[#6D58BB]" />
               {searchQuery && (
-                <button 
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   <X className="h-4 w-4" />
                 </button>
               )}
@@ -266,17 +297,17 @@ export default function Dashboard() {
         )}
 
         <div className="min-h-[400px]">
-          {isLoading && !hasLoadedInitialData.current ? (
+          {showSkeleton ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <VideoCardSkeleton key={i} />)}
+                {[1, 2, 3, 4].map((i) => <VideoCardSkeleton key={i} />)}
              </div>
           ) : (
             <>
-              {!hasContent && !isLoading ? (
+              {!hasContent ? (
                 <motion.div initial={{ opacity: 0, scale:0.95 }} animate={{ opacity: 1, scale: 1 }}>
                   <CardContent className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-[24px] border border-gray-200 py-24">
                     <h2 className="mb-2 text-5xl font-medium text-[#080936]">Create My First Video</h2>
-                    <p className="mb-8 text-gray-500">PDFs, Word docs, and Web pages are ≈ 400 words each</p>
+                    <p className="mb-8 text-gray-500">Scale your reach with high-converting AI videos</p>
                     <Link href="/inputs" className="cursor-pointer">
                       <Button size="lg" className="rounded-xl bg-[#6D58BB] px-8 py-7 text-xl font-normal text-white hover:bg-[#080936] cursor-pointer">
                         Start Creating Now <ArrowRight className="ml-2 h-6 w-6" />
@@ -285,55 +316,37 @@ export default function Dashboard() {
                   </CardContent>
                 </motion.div>
               ) : hasNoResults ? (
-                <motion.div 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  className="flex flex-col items-center justify-center py-20 text-center"
-                >
-                  <div className="bg-gray-100 p-6 rounded-full mb-4">
-                    <Search className="h-10 w-10 text-gray-400" />
-                  </div>
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Search className="h-10 w-10 text-gray-400 mb-4" />
                   <h3 className="text-xl font-medium text-[#080936]">No results for "{searchQuery}"</h3>
-                  <p className="text-gray-500 mt-2">Try checking the spelling or using different keywords.</p>
-                  <Button 
-                    variant="link" 
-                    onClick={() => setSearchQuery("")}
-                    className="mt-4 text-[#6D58BB] font-semibold cursor-pointer"
-                  >
-                    Clear search
-                  </Button>
-                </motion.div>
+                  <Button variant="link" onClick={() => setSearchQuery("")} className="mt-4 text-[#6D58BB]">Clear search</Button>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <AnimatePresence mode="popLayout">
-                    {/* PROMPT STATE (QUEUED) */}
                     {filteredPrompts.map((p) => (
                       <motion.div key={p.projectId} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                        <Card className="border-1 bg-white p-0 shadow-none border-gray-200 h-full overflow-hidden rounded-[24px]">
-                          <CardContent className="p-0">
-                            <div className="relative aspect-video">
+                        <Card className="border-1 bg-white p-0 shadow-none border-gray-200 group h-full transition-shadow hover:shadow-md rounded-[24px] overflow-hidden">
+                          <CardContent className="p-0">   
+                            <div className="relative aspect-[4/3]">
                               <img src={`/assets/avatars/${p.replicaId || "default"}.jpg`} className="w-full h-full object-cover object-top grayscale-[0.2]" alt="" />
                               <Badge className="rounded-[20px] font-normal absolute top-2 right-2 bg-[#FFF4CA] text-[#8F3F01]">queued</Badge>
                             </div>
                             <div className="p-5 space-y-2">
                               <h2 className="text-2xl text-[#272830] font-medium truncate">{p.title || "New Project"}</h2>
-                              <p className="text-sm text-[#272830] line-clamp-1 italic min-h-[40px] opacity-60">"{p.topic || "Processing content..."}"</p>
                               <div className="flex items-center gap-2 pt-3">
                                 <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                                <span className="text-[12px] text-gray-400 font-light">Generating script...</span>
+                                <span className="text-[12px] text-gray-400">Generating script...</span>
                               </div>
-                              <div className="pt-3">
-                                <Button disabled className="w-full h-10 bg-[#E2F2FE] text-[#2056E0] rounded-[20px] gap-2 border-none">
-                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Queued...
-                                </Button>
-                              </div>
+                              <Button disabled className="w-full h-10 mt-3 bg-[#E2F2FE] text-[#2056E0] rounded-[20px] gap-2 border-none">
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Queued...
+                              </Button>
                             </div>
                           </CardContent>
                         </Card>
                       </motion.div>
                     ))}
 
-                    {/* VIDEOS LIST */}
                     {filteredVideos.map((v) => (
                       <VideoCard 
                         key={v.videoId} 
@@ -346,16 +359,14 @@ export default function Dashboard() {
                       />
                     ))}
 
-                    {/* BLOQUE FINAL: CREATE NEW PROJECT */}
                     {!searchQuery && (
                       <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                         <Link href="/inputs" className="h-full block group cursor-pointer">
                           <Card className="border-2 border-dashed border-gray-200 bg-transparent h-full min-h-[380px] flex flex-col items-center justify-center p-8 transition-all hover:border-[#6D58BB] hover:bg-white rounded-[24px]">
-                            <div className="rounded-full bg-gray-100 p-4 mb-4 group-hover:bg-[#E2F2FE] transition-colors">
+                            <div className="rounded-full bg-gray-100 p-4 mb-4 group-hover:bg-[#E2F2FE]">
                               <Plus className="h-8 w-8 text-gray-400 group-hover:text-[#6D58BB]" />
                             </div>
                             <h3 className="text-xl font-medium text-gray-900 group-hover:text-[#6D58BB]">Create new project</h3>
-                            <p className="text-sm text-gray-500 text-center mt-2">Scale your reach with another high-converting video</p>
                           </Card>
                         </Link>
                       </motion.div>

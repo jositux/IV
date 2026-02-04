@@ -13,30 +13,32 @@ import { uploadDocumentFile } from "@/services/documents/document-upload";
 import { uploadDocumentFromUrl } from "@/services/documents/document-upload-from-url";
 import { setDocumentPrimaryFocus } from "@/services/documents/set-document-as-primary-focus";
 
+// Helper para leer la cookie de identidad
+const getCookie = (name: string) => {
+  if (typeof window === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return null;
+};
+
 export function useVideoCreator() {
   const router = useRouter();
   const { startNewProject } = useGeneration();
+  
+  // Obtenemos el userId de la cookie de forma instantánea
+  const userId = getCookie("user_id");
 
   // --- VALORES INICIALES ---
   const initialFormState = {
-    files: [],
-    urls: [],
-    newUrl: "",
-    videoLength: "30s",
-    language: "english",
-    videoPosition: "bottom-left",
-    videoSize: "standard",
-    primaryFocus: "files" as const,
-    targetAudience: "",
-    topic: "",
-    keywords: "",
-    projectName: "",
-    trainingType: "",
-    customTrainingType: "",
-    customTrainingOptions: []
+    files: [], urls: [], newUrl: "", videoLength: "30s",
+    language: "english", videoPosition: "bottom-left", videoSize: "standard",
+    primaryFocus: "files" as const, targetAudience: "", topic: "",
+    keywords: "", projectName: "", trainingType: "",
+    customTrainingType: "", customTrainingOptions: []
   };
 
-  // --- STATES (IGUALES AL ORIGINAL) ---
+  // --- STATES ---
   const [replicas, setReplicas] = useState<Replica[]>([]);
   const [loadingReplicas, setLoadingReplicas] = useState(true);
   const [files, setFiles] = useState<File[]>(initialFormState.files);
@@ -77,32 +79,27 @@ export function useVideoCreator() {
     setNewUrl(initialFormState.newUrl);
     setVideoLength(initialFormState.videoLength);
     setLanguage(initialFormState.language);
-    setVideoPosition(initialFormState.videoPosition);
-    setVideoSize(initialFormState.videoSize);
-    setPrimaryFocus(initialFormState.primaryFocus);
-    setTargetAudience(initialFormState.targetAudience);
-    setTopic(initialFormState.topic);
-    setKeywords(initialFormState.keywords);
-    setProjectName(initialFormState.projectName);
-    setTrainingType(initialFormState.trainingType);
-    setCustomTrainingType(initialFormState.customTrainingType);
-    setCustomTrainingOptions(initialFormState.customTrainingOptions);
     setProjectError("");
     setError("");
   };
 
   useEffect(() => {
     const initData = async () => {
+      // Si no hay userId en la cookie aún, esperamos al siguiente ciclo
+      if (!userId) return;
+
       try {
         const token = await getAuthToken();
-        const userId = localStorage.getItem("user") || "user_temp";
         const savedReplica = localStorage.getItem("last_selected_replica");
+        
         const [creditsRes, replicasRes] = await Promise.all([
           getCreditHistory(token, userId),
           getVideoReplicas(token),
         ]);
+
         if (creditsRes?.success) setAvailableCredits(creditsRes.data.currentBalance);
         else setAvailableCredits(0);
+
         if (replicasRes.success && replicasRes.data.length > 0) {
           setReplicas(replicasRes.data);
           setSelectedReplica(savedReplica || replicasRes.data[0].replica_id);
@@ -114,16 +111,19 @@ export function useVideoCreator() {
       }
     };
     initData();
-  }, []);
+  }, [userId]); // Re-ejecutar si la cookie cambia (login/logout)
 
   const handleReplicaChange = (id: string) => {
     setSelectedReplica(id);
     localStorage.setItem("last_selected_replica", id);
   };
 
-  // --- HANDLE GENERATE (BLOQUEADO Y CORREGIDO) ---
   const handleGenerate = async (currentProjectedBalance?: number) => {
-    // Usamos el balance proyectado si viene de la página, si no, el local
+    if (!userId) {
+      setError("User session not found. Please log in again.");
+      return;
+    }
+
     const balanceToCheck = currentProjectedBalance !== undefined ? currentProjectedBalance : availableCredits;
 
     if (balanceToCheck !== null && balanceToCheck < totalRequired) {
@@ -131,9 +131,9 @@ export function useVideoCreator() {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+    
     if (projectName.trim().length < 4) {
       setProjectError("Project name is too short");
-      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -142,14 +142,16 @@ export function useVideoCreator() {
 
     try {
       const token = await getAuthToken();
-      const userId = localStorage.getItem("user") || "user_temp";
 
+      // Lógica de Folders y Projects
       const folders = await getListFolders(token);
       let folderId = folders.data?.[0]?.folderId || (await createFolder(token, { folderName: "Main" })).data?.folderId;
       const proj = await createProject(token, { folderId, projectName: projectName.trim() });
       const currentProjectId = proj.data.projectId;
 
       let documentId: string | undefined = undefined;
+      
+      // Subida de archivos/URLs
       if (primaryFocus === "files" && files.length > 0) {
         const up = await uploadDocumentFile(token, files[0], userId, true);
         if (up.success) {
@@ -164,6 +166,7 @@ export function useVideoCreator() {
         }
       }
 
+      // Llamada al Backend para generar el prompt
       const response = await generatePrompt(token, {
         userInput: `Topic: ${topic}. Keywords: ${keywords}. Audience: ${targetAudience}`,
         userId, duration: totalRequired, style: "professional", language,
@@ -171,34 +174,34 @@ export function useVideoCreator() {
         documentId
       });
 
-     // ... (dentro de handleGenerate, después de response.success)
-if (response.success) {
-  const newGen = { 
-    jobId: response.data.jobId, 
-    topic: topic, 
-    projectId: currentProjectId, 
-    title: projectName.trim(), 
-    replicaId: selectedReplica,
-    duration: totalRequired, 
-    status: "active",
-    createdAt: Date.now() // <--- AÑADIMOS ESTO PARA EL ORDEN DEL DASHBOARD
-  };
-  
-  const existing = JSON.parse(localStorage.getItem("active_prompt_generations") || "[]");
-  localStorage.setItem("active_prompt_generations", JSON.stringify([...existing, newGen]));
+      if (response.success) {
+        // Guardamos en localStorage los datos volátiles del proyecto activo
+        const newGen = { 
+          jobId: response.data.jobId, 
+          topic: topic, 
+          projectId: currentProjectId, 
+          title: projectName.trim(), 
+          replicaId: selectedReplica,
+          duration: totalRequired, 
+          status: "active",
+          createdAt: Date.now()
+        };
+        
+        const existing = JSON.parse(localStorage.getItem("active_prompt_generations") || "[]");
+        localStorage.setItem("active_prompt_generations", JSON.stringify([...existing, newGen]));
 
-  // PASAMOS DURATION Y METADATOS AL PROVIDER
-  startNewProject(response.data.jobId, userId, selectedReplica, {
-    projectId: currentProjectId,
-    duration: totalRequired,
-    keywords,
-    targetAudience,
-  });
+        // Disparamos el proceso en el Contexto Global
+        startNewProject(response.data.jobId, userId, selectedReplica, {
+          projectId: currentProjectId,
+          duration: totalRequired,
+          keywords,
+          targetAudience,
+        });
 
-  resetForm(); 
-  setShowSuccessModal(true);
-  window.dispatchEvent(new Event("storage"));
-}
+        resetForm(); 
+        setShowSuccessModal(true);
+        window.dispatchEvent(new Event("storage"));
+      }
     } catch (e: any) {
       setError(e.message || "An error occurred");
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -207,15 +210,7 @@ if (response.success) {
     }
   };
 
-  const handleModalAccept = () => {
-    setShowSuccessModal(false);
-    router.push("/dashboard");
-  };
-
-  const handleModalCancel = () => {
-    setShowSuccessModal(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  // ... resto de manejadores de modal intactos ...
 
   return {
     replicas, loadingReplicas, selectedReplica, setSelectedReplica: handleReplicaChange,
@@ -230,12 +225,10 @@ if (response.success) {
     statusMessage: isLocalGenerating ? "Creating Project..." : null,
     error, success, previewVideo, setPreviewVideo, previewReplicaName,
     availableCredits, calculateTotalCredits, handleGenerate,
-    showSuccessModal, handleModalAccept, handleModalCancel,
+    showSuccessModal, handleModalAccept: () => { setShowSuccessModal(false); router.push("/dashboard"); },
+    handleModalCancel: () => { setShowSuccessModal(false); window.scrollTo({ top: 0, behavior: "smooth" }); },
     handleProjectNameChange: (v: string) => { setProjectName(v); setProjectError(""); },
-    handlePlayVideo: (url: string, name: string) => {
-      setPreviewVideo(url);
-      setPreviewReplicaName(name);
-    },
+    handlePlayVideo: (url: string, name: string) => { setPreviewVideo(url); setPreviewReplicaName(name); },
     canGenerate: !!selectedReplica && projectName.trim().length >= 4 && !isLocalGenerating,
   };
 }
