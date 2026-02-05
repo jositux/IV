@@ -57,16 +57,56 @@ export function FileUploadCard({
   const [urlError, setUrlError] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
+  // --- Lógica de Archivos (Sin Duplicados) ---
   const processFiles = useCallback((selectedFiles: File[]) => {
-    const validFiles = selectedFiles.filter(file => 
+    const validExtensionFiles = selectedFiles.filter(file => 
       file.name.toLowerCase().endsWith('.doc') || 
       file.name.toLowerCase().endsWith('.docx')
     )
-    if (validFiles.length > 0) {
-      onFilesChange([...files, ...validFiles])
+
+    const newFiles = validExtensionFiles.filter(newFile => {
+      const isDuplicate = files.some((existingFile: File) => 
+        existingFile.name === newFile.name && 
+        existingFile.size === newFile.size
+      )
+      return !isDuplicate
+    })
+
+    if (newFiles.length > 0) {
+      onFilesChange([...files, ...newFiles])
     }
   }, [files, onFilesChange])
 
+  // --- Lógica de URLs (Sin Duplicados) ---
+  const validateAndAddUrl = useCallback(() => {
+    let rawUrl = newUrl.trim()
+    if (!rawUrl) return
+    
+    // Normalización básica para comparar mejor
+    let urlToValidate = rawUrl.toLowerCase()
+    if (!/^https?:\/\//i.test(urlToValidate)) urlToValidate = `https://${urlToValidate}`
+    
+    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?(\?.*)?$/
+    
+    if (urlPattern.test(urlToValidate)) {
+      // VALIDACIÓN DE DUPLICADOS AQUÍ
+      const isDuplicate = urls.some((u: string) => u.toLowerCase() === urlToValidate.toLowerCase())
+      
+      if (!isDuplicate) {
+        onUrlsChange([...urls, urlToValidate])
+        onNewUrlChange("")
+        setUrlError(false)
+      } else {
+        // Si es duplicado, simplemente limpiamos el input o podrías mostrar un aviso
+        onNewUrlChange("")
+        setUrlError(false) 
+      }
+    } else {
+      setUrlError(true)
+    }
+  }, [newUrl, urls, onUrlsChange, onNewUrlChange])
+
+  // --- Handlers de Drag & Drop ---
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -88,22 +128,6 @@ export function FileUploadCard({
     }
   }
 
-  const validateAndAddUrl = useCallback(() => {
-    let rawUrl = newUrl.trim()
-    if (!rawUrl) return
-    let urlToValidate = rawUrl.toLowerCase()
-    if (!/^https?:\/\//i.test(urlToValidate)) urlToValidate = `https://${urlToValidate}`
-    
-    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?(\?.*)?$/
-    if (urlPattern.test(urlToValidate)) {
-      if (!urls.includes(urlToValidate)) onUrlsChange([...urls, urlToValidate])
-      onNewUrlChange("")
-      setUrlError(false)
-    } else {
-      setUrlError(true)
-    }
-  }, [newUrl, urls, onUrlsChange, onNewUrlChange])
-
   return (
     <Card className="p-0 shadow-none border-0 bg-transparent">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-start">
@@ -117,15 +141,18 @@ export function FileUploadCard({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all mb-4 ${
+            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all mb-4 relative ${
               isDragging 
-                ? "border-indigo-500 bg-indigo-50/50" 
+                ? "border-indigo-500 bg-indigo-50/50 scale-[1.01]" 
                 : "border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/10"
             }`}
           >
-            <Upload className={`w-8 h-8 mx-auto mb-2 ${isDragging ? "text-indigo-500" : "text-gray-400"}`} />
-            <p className="text-xs text-gray-500 font-medium">Drag & drop or click to browse</p>
-            <p className="text-[10px] text-[#6D58BB] mt-1 font-semibold uppercase tracking-wider">Only .doc, .docx</p>
+            <Upload className={`w-8 h-8 mx-auto mb-2 transition-colors ${isDragging ? "text-indigo-500" : "text-gray-400"}`} />
+            <p className="text-xs text-gray-500 font-medium pointer-events-none">
+              {isDragging ? "Drop Word files now" : "Drag & drop or click to browse"}
+            </p>
+            <p className="text-[10px] text-[#6D58BB] mt-1 font-semibold uppercase tracking-wider pointer-events-none">Only .doc, .docx</p>
+            
             <input 
               id="file-upload-v2" 
               type="file" 
@@ -141,10 +168,12 @@ export function FileUploadCard({
             />
           </div>
 
-          {/* LISTA QUE CRECE DINÁMICAMENTE */}
-          <div className="space-y-2 mb-4">
+          <div className="space-y-2 mb-6">
             {files.map((file: any, i: number) => (
-              <div key={`${file.name}-${i}`} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 animate-in fade-in zoom-in duration-200">
+              <div 
+                key={`${file.name}-${file.size}-${i}`} 
+                className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 animate-in fade-in zoom-in duration-200"
+              >
                 <div className="flex items-center gap-2 overflow-hidden">
                   <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span className="text-xs text-gray-600 truncate font-medium">{file.name}</span>
@@ -153,7 +182,7 @@ export function FileUploadCard({
                   variant="ghost" 
                   size="sm" 
                   onClick={() => onFilesChange(files.filter((_:any, idx:any) => idx !== i))} 
-                  className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
+                  className="h-7 w-7 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50 cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -165,7 +194,7 @@ export function FileUploadCard({
             selected={primaryFocus === "files"}
             onClick={() => onPrimaryFocusChange("files")}
             title="Set these files as Primary Focus"
-            description="Example: If the Word doc(s) you enter is about training, you may want to select 'Primary Focus'."
+            description="Example: If the Word doc(s) you enter is about training, the AI will prioritize this content."
           />
         </div>
 
@@ -179,23 +208,29 @@ export function FileUploadCard({
               onChange={(e) => onNewUrlChange(e.target.value)}
               onBlur={validateAndAddUrl}
               placeholder="www.anyurl.com"
-              className={`rounded-xl h-11 ${urlError ? "border-red-500" : "border-gray-200"}`}
+              className={`rounded-xl h-11 ${urlError ? "border-red-500 ring-red-500" : "border-gray-200"}`}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), validateAndAddUrl())}
             />
-            <Button onClick={validateAndAddUrl} className="bg-[#6D58BB] hover:bg-[#5a48a3] h-11 px-5 rounded-xl">
+            <Button onClick={validateAndAddUrl} className="bg-[#6D58BB] hover:bg-[#5a48a3] h-11 px-5 rounded-xl cursor-pointer">
               <Plus className="w-4 h-4 mr-2" /> Add
             </Button>
           </div>
 
-          <div className="space-y-2 mb-4">
+          <div className="space-y-2 mb-6">
             {urls.map((url: string, i: number) => (
               <div key={`${url}-${i}`} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 animate-in fade-in zoom-in duration-200">
                 <div className="flex items-center gap-2 overflow-hidden">
                   <Globe className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span className="text-xs text-gray-600 truncate font-medium">{url}</span>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => onUrlsChange(urls.filter((_:any, idx:any) => idx !== i))} className="h-7 w-7 p-0 text-gray-400">
-                  <X className="w-4 h-4" />
+               
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => onUrlsChange(urls.filter((_:any, idx:any) => idx !== i))}
+                  className="h-7 w-7 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             ))}
