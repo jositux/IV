@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Upload, Plus, X, FileText, Globe, Trash2, Circle } from "lucide-react"
+import { Upload, Plus, X, FileText, Globe, Trash2, Circle, FileJson } from "lucide-react"
 
 function PrimaryFocusOption({ 
   selected, 
@@ -57,12 +57,12 @@ export function FileUploadCard({
   const [urlError, setUrlError] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
-  // --- Lógica de Archivos (Sin Duplicados) ---
+  // --- Lógica de Archivos (Ahora acepta PDF, DOC, DOCX) ---
   const processFiles = useCallback((selectedFiles: File[]) => {
-    const validExtensionFiles = selectedFiles.filter(file => 
-      file.name.toLowerCase().endsWith('.doc') || 
-      file.name.toLowerCase().endsWith('.docx')
-    )
+    const validExtensionFiles = selectedFiles.filter(file => {
+      const name = file.name.toLowerCase();
+      return name.endsWith('.doc') || name.endsWith('.docx') || name.endsWith('.pdf');
+    })
 
     const newFiles = validExtensionFiles.filter(newFile => {
       const isDuplicate = files.some((existingFile: File) => 
@@ -77,56 +77,45 @@ export function FileUploadCard({
     }
   }, [files, onFilesChange])
 
-  // --- Lógica de URLs (Sin Duplicados) ---
+  // --- Handlers de Drag & Drop ---
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    setIsDragging(true);
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    setIsDragging(false);
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(Array.from(e.dataTransfer.files));
+    }
+  }
+
   const validateAndAddUrl = useCallback(() => {
     let rawUrl = newUrl.trim()
     if (!rawUrl) return
-    
-    // Normalización básica para comparar mejor
     let urlToValidate = rawUrl.toLowerCase()
     if (!/^https?:\/\//i.test(urlToValidate)) urlToValidate = `https://${urlToValidate}`
     
     const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?(\?.*)?$/
-    
     if (urlPattern.test(urlToValidate)) {
-      // VALIDACIÓN DE DUPLICADOS AQUÍ
       const isDuplicate = urls.some((u: string) => u.toLowerCase() === urlToValidate.toLowerCase())
-      
       if (!isDuplicate) {
         onUrlsChange([...urls, urlToValidate])
         onNewUrlChange("")
         setUrlError(false)
       } else {
-        // Si es duplicado, simplemente limpiamos el input o podrías mostrar un aviso
         onNewUrlChange("")
-        setUrlError(false) 
       }
     } else {
       setUrlError(true)
     }
   }, [newUrl, urls, onUrlsChange, onNewUrlChange])
-
-  // --- Handlers de Drag & Drop ---
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFiles(Array.from(e.dataTransfer.files))
-    }
-  }
 
   return (
     <Card className="p-0 shadow-none border-0 bg-transparent">
@@ -149,16 +138,18 @@ export function FileUploadCard({
           >
             <Upload className={`w-8 h-8 mx-auto mb-2 transition-colors ${isDragging ? "text-indigo-500" : "text-gray-400"}`} />
             <p className="text-xs text-gray-500 font-medium pointer-events-none">
-              {isDragging ? "Drop Word files now" : "Drag & drop or click to browse"}
+              {isDragging ? "Drop files now" : "Drag & drop or click to browse"}
             </p>
-            <p className="text-[10px] text-[#6D58BB] mt-1 font-semibold uppercase tracking-wider pointer-events-none">Only .doc, .docx</p>
+            <p className="text-[10px] text-[#6D58BB] mt-1 font-semibold uppercase tracking-wider pointer-events-none">
+              Only .doc, .docx, .pdf
+            </p>
             
             <input 
               id="file-upload-v2" 
               type="file" 
               multiple 
               className="hidden" 
-              accept=".doc,.docx"
+              accept=".doc,.docx,.pdf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={(e) => {
                 if (e.target.files) {
                   processFiles(Array.from(e.target.files))
@@ -168,6 +159,7 @@ export function FileUploadCard({
             />
           </div>
 
+          {/* LISTA DINÁMICA */}
           <div className="space-y-2 mb-6">
             {files.map((file: any, i: number) => (
               <div 
@@ -175,7 +167,12 @@ export function FileUploadCard({
                 className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 animate-in fade-in zoom-in duration-200"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+                  {/* Cambia el icono si es PDF */}
+                  {file.name.toLowerCase().endsWith('.pdf') ? (
+                    <FileJson className="w-4 h-4 text-red-500 shrink-0" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+                  )}
                   <span className="text-xs text-gray-600 truncate font-medium">{file.name}</span>
                 </div>
                 <Button 
@@ -194,14 +191,13 @@ export function FileUploadCard({
             selected={primaryFocus === "files"}
             onClick={() => onPrimaryFocusChange("files")}
             title="Set these files as Primary Focus"
-            description="Example: If the Word doc(s) you enter is about training, the AI will prioritize this content."
+            description="The AI will prioritize the content of your uploaded Word and PDF documents."
           />
         </div>
 
         {/* SECCIÓN URLS */}
         <div className="bg-white rounded-[24px] border border-[#DADADA] p-6 shadow-sm flex flex-col min-h-[400px]">
           <Label className="text-2xl text-[#272830] font-normal mb-2 block">Web URLs (Optional)</Label>
-          
           <div className="flex gap-2 mb-4">
             <Input
               value={newUrl}
@@ -223,14 +219,8 @@ export function FileUploadCard({
                   <Globe className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span className="text-xs text-gray-600 truncate font-medium">{url}</span>
                 </div>
-               
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => onUrlsChange(urls.filter((_:any, idx:any) => idx !== i))}
-                  className="h-7 w-7 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50 cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
+                <Button variant="ghost" size="sm" onClick={() => onUrlsChange(urls.filter((_:any, idx:any) => idx !== i))} className="h-7 w-7 p-0 text-gray-400 cursor-pointer">
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
             ))}
@@ -240,10 +230,9 @@ export function FileUploadCard({
             selected={primaryFocus === "urls"}
             onClick={() => onPrimaryFocusChange("urls")}
             title="Set these URLs as Primary Focus"
-            description="Example: Use this if the website content is the main source of information."
+            description="Use this if the website content is the main source of information."
           />
         </div>
-
       </div>
     </Card>
   )
