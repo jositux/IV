@@ -68,9 +68,26 @@ export function useVideoCreator() {
 
   // --- HELPERS ---
   const calculateTotalCredits = () => {
+    // Extraemos el número
     const value = parseInt(videoLength.match(/(\d+)/)?.[0] || "0");
-    return videoLength.toLowerCase().includes("m") ? value * 60 : value;
+    const isMinutes = videoLength.toLowerCase().includes("m");
+    
+    // Si es 0 o no hay valor, 0 créditos
+    if (value === 0) return 0;
+  
+    // Convertimos todo a una unidad base de minutos para el cálculo
+    // Si dice "30s", el valor de minutos sería 0.5
+    const durationInMinutes = isMinutes ? value : value / 60;
+  
+    if (durationInMinutes <= 1) {
+      return 4; // 30s o 1m valen 4 créditos
+    } else {
+      // Para más de 1m: 4 iniciales + 3 por cada minuto extra
+      // Usamos Math.ceil por si quieres cobrar minutos parciales (ej: 1.5m) como completos
+      return 4 + (Math.ceil(durationInMinutes) - 1) * 3;
+    }
   };
+  
   const totalRequired = calculateTotalCredits();
 
   const resetForm = () => {
