@@ -61,7 +61,7 @@ export function useUserProfile() {
       const initialCeiling = Math.max(...snapshots, realBalance);
       const chargedByBackend = Math.max(0, initialCeiling - realBalance);
       const totalPlannedDebt = activeProjects.reduce((acc: number, proj: any) => 
-        proj.error ? acc : acc + (Number(proj.duration) || 0), 0);
+        proj.error ? acc : acc + (Number(proj.credits) || 0), 0);
 
       return Math.max(0, realBalance - Math.max(0, totalPlannedDebt - chargedByBackend));
     } catch (e) { return realBalance; }

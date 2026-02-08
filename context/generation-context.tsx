@@ -35,6 +35,7 @@ interface ProjectState {
   keywords?: string;
   targetAudience?: string;
   duration: number;
+  credits: number;
   initialBalanceSnapshot: number; 
 }
 
@@ -44,7 +45,7 @@ interface GenerationContextType {
     jobId: string, 
     userId: string, 
     replicaId: string, 
-    options: { projectId: string; keywords?: string; targetAudience?: string; duration?: number }
+    options: { projectId: string; keywords?: string; targetAudience?: string; duration?: number; credits?:number }
   ) => void;
   removeProject: (projectId: string) => void;
   clearAllProjects: () => void;
@@ -195,7 +196,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     jobId: string, 
     _userId: string, // El userId se ignora, usamos la Cookie del sistema
     replicaId: string, 
-    options: { projectId: string; keywords?: string; targetAudience?: string; duration?: number }
+    options: { projectId: string; keywords?: string; targetAudience?: string; duration?: number; credits?:number }
   ) => {
     localStorage.setItem(`r_${options.projectId}`, replicaId);
     
@@ -211,6 +212,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         keywords: options.keywords,
         targetAudience: options.targetAudience,
         duration: options.duration || 0,
+        credits: options.credits || 0,
         initialBalanceSnapshot: realBalance 
       }
     }));
