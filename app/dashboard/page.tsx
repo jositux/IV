@@ -130,7 +130,7 @@ const VideoCard = memo(function VideoCard({
             <p className="text-sm text-[#272830] line-clamp-1 italic min-h-[40px]">"{video.prompt?.replace(/<[^>]*>?/gm, "")}"</p>
             <div className="flex items-center justify-between pt-3">
               <div className="flex gap-2 text-[12px]">
-                {video.duration > 0 && <span className="bg-[#E2F2FE] text-[#2056E0] font-light px-2 py-1 rounded-[20px]"><Clock className="w-3 h-3 inline mr-1" />{video.duration} sec</span>}
+                {video.duration > 0 && <span className="bg-[#E2F2FE] text-[#2056E0] font-light px-2 py-1 rounded-[20px]"><Clock className="w-3 h-3 inline mr-1" />{Math.floor(video.duration / 60)}:{Math.floor(video.duration % 60).toString().padStart(2, '0')} </span>}
                 {video.creditsCharged > 0 && <span className="bg-[#FFF4CA] text-[#8F3F01] font-light px-2 py-1 rounded-[20px]"><CreditCard className="w-3 h-3 inline mr-1" />{video.creditsCharged} credits</span>}
               </div>
               {dateTime && <div className="text-[11px] text-[#272830] font-light text-right"><div>{dateTime.date}</div><div className="opacity-80">{dateTime.time}</div></div>}
