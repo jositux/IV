@@ -8,20 +8,15 @@
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/josituxs-projects/v0-stripe-subscription-system)
 
-## Overview
+## 🚀 Overview
 
-This project is built using the **Next.js** framework for full-stack React development, utilizing the speed and consistency of **Yarn** for package management. The application is designed for high performance, server-side rendering, and easy deployment on **Vercel**.
+This project is built using the **Next.js** framework for full-stack React development, utilizing the speed and consistency of **Yarn** for package management. The application is designed for high performance, server-side rendering, and seamless integration with AI models.
 
-## Deployment
+## 🛠️ Getting Started
 
-Your project is live at:
+To work on this project locally, ensure you have **Yarn** installed. Follow these instructions:
 
-**[https://vercel.com/josituxs-projects/v0-stripe-subscription-system](https://vercel.com/josituxs-projects/v0-stripe-subscription-system)**
-
-
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+### 1. Install Dependencies
+Install all necessary modules listed in `package.json`:
+```bash
+yarn install
